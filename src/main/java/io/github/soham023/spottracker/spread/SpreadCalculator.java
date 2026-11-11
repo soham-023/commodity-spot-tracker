@@ -1,5 +1,6 @@
 package io.github.soham023.spottracker.spread;
 
+import io.github.soham023.spottracker.contract.ContractCalendar;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import io.github.soham023.spottracker.domain.PriceType;
 import io.github.soham023.spottracker.source.agmarknet.DataGovMandiSource;
@@ -23,7 +24,8 @@ import java.util.stream.Collectors;
  * Pure spread maths over a list of snapshots for one commodity (no Spring, no database).
  *
  * <ul>
- *   <li><b>Basis</b>: near-month futures (earliest contract quoted that day) − NCDEX benchmark spot.</li>
+ *   <li><b>Basis</b>: near-month futures − NCDEX benchmark spot. The near month is the earliest contract
+ *   quoted that day that is not inside its roll window per the scraped {@link ContractCalendar}.</li>
  *   <li><b>Mandi spread</b>: average modal price across varieties at a mandi − NCDEX benchmark spot.</li>
  * </ul>
  * NCDEX spot polls can lag several days, so each day uses the latest spot poll on or before it,
@@ -40,8 +42,12 @@ public class SpreadCalculator {
     }
 
     public List<SpreadPoint> compute(String commodity, List<PriceSnapshot> snapshots) {
+        return compute(commodity, snapshots, ContractCalendar.empty());
+    }
+
+    public List<SpreadPoint> compute(String commodity, List<PriceSnapshot> snapshots, ContractCalendar calendar) {
         TreeMap<LocalDate, BigDecimal> spot = new TreeMap<>();
-        Map<LocalDate, PriceSnapshot> nearMonth = new TreeMap<>();
+        Map<LocalDate, List<PriceSnapshot>> futuresByDate = new TreeMap<>();
         Map<String, TreeMap<LocalDate, List<BigDecimal>>> mandi = new TreeMap<>();
 
         for (PriceSnapshot s : snapshots) {
@@ -54,8 +60,7 @@ public class SpreadCalculator {
                     && s.getVariety().equalsIgnoreCase(props.benchmarkVariety())) {
                 spot.put(s.getPriceDate(), s.getPrice());
             } else if (ncdex && s.getPriceType() == PriceType.FUTURES) {
-                nearMonth.merge(s.getPriceDate(), s,
-                        (a, b) -> a.getContractMonth().compareTo(b.getContractMonth()) <= 0 ? a : b);
+                futuresByDate.computeIfAbsent(s.getPriceDate(), k -> new ArrayList<>()).add(s);
             } else if (DataGovMandiSource.ID.equals(s.getSource()) && s.getPriceType() == PriceType.SPOT) {
                 mandi.computeIfAbsent(s.getMarket(), k -> new TreeMap<>())
                         .computeIfAbsent(s.getPriceDate(), k -> new ArrayList<>())
@@ -65,10 +70,9 @@ public class SpreadCalculator {
 
         List<SpreadPoint> points = new ArrayList<>();
         Map<String, BigDecimal> previous = new HashMap<>();
-        for (PriceSnapshot f : nearMonth.values()) {
-            String key = "BASIS";
-            add(points, commodity, f.getPriceDate(), SpreadKind.BASIS, f.getContractMonth(), f.getPrice(), spot, previous, key);
-        }
+        futuresByDate.forEach((date, quotes) -> calendar.pickNearMonth(quotes, PriceSnapshot::getContractMonth, date)
+                .ifPresent(f -> add(points, commodity, date, SpreadKind.BASIS, f.getContractMonth(), f.getPrice(), spot,
+                        previous, "BASIS")));
         mandi.forEach((market, byDate) -> byDate.forEach((date, modals) -> {
             BigDecimal avg = modals.stream().reduce(BigDecimal.ZERO, BigDecimal::add)
                     .divide(BigDecimal.valueOf(modals.size()), 2, RoundingMode.HALF_UP);

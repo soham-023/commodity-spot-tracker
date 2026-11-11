@@ -39,6 +39,9 @@ spot:
     benchmark-market: Nizamabad
     benchmark-variety: Farmer Polished
     max-spot-age-days: 7
+  contracts:
+    # Near month rolls to the next expiry this many calendar days before expiry
+    roll-days: ${SPOT_ROLL_DAYS:5}
   alerts:
     telegram-bot-token: ${TELEGRAM_BOT_TOKEN:}
     telegram-chat-id: ${TELEGRAM_CHAT_ID:}

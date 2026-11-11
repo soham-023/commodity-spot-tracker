@@ -1,5 +1,6 @@
 package io.github.soham023.spottracker.spread;
 
+import io.github.soham023.spottracker.contract.ContractCalendar;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -98,6 +99,26 @@ class SpreadCalculatorTest {
                 mandi("Sangli", "Rajapuri", "24300", D2));
         assertThat(strict.compute("TURMERIC", data).getFirst().flags()).contains(SpreadFlag.WIDE_SPREAD);
         assertThat(calc.compute("TURMERIC", data).getFirst().flags()).isEmpty();
+    }
+
+    @Test
+    void basisRollsToTheNextContractInsideTheRollWindow() {
+        var calendar = new ContractCalendar(List.of(LocalDate.of(2026, 12, 18), LocalDate.of(2027, 4, 16)), 5);
+        LocalDate early = LocalDate.of(2026, 12, 10);
+        LocalDate late = LocalDate.of(2026, 12, 14);
+        List<PriceSnapshot> data = List.of(
+                spot("Nizamabad", "Farmer Polished", "24000", early),
+                spot("Nizamabad", "Farmer Polished", "24000", late),
+                futures("2026-12", "24500", early), futures("2027-04", "25500", early),
+                futures("2026-12", "24100", late), futures("2027-04", "25400", late));
+
+        List<SpreadPoint> points = calc.compute("TURMERIC", data, calendar);
+
+        assertThat(points).extracting(SpreadPoint::date, SpreadPoint::label).containsExactly(
+                org.assertj.core.groups.Tuple.tuple(early, "2026-12"),
+                org.assertj.core.groups.Tuple.tuple(late, "2027-04"));
+        // without the calendar the expiring December contract would still be used
+        assertThat(calc.compute("TURMERIC", data)).extracting(SpreadPoint::label).containsOnly("2026-12");
     }
 
     @Test

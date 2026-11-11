@@ -66,10 +66,13 @@ public class PriceQueryService {
                         && s.getVariety().equalsIgnoreCase(props.benchmarkVariety()))
                 .max(Comparator.comparing(PriceSnapshot::getPriceDate)).map(PriceDto::from).orElse(null);
 
-        PriceDto futures = window.stream()
+        List<PriceSnapshot> futuresQuotes = window.stream()
                 .filter(s -> s.getSource().equals(NcdexPriceSource.ID) && s.getPriceType() == PriceType.FUTURES)
-                .max(Comparator.comparing(PriceSnapshot::getPriceDate)
-                        .thenComparing(PriceSnapshot::getContractMonth, Comparator.reverseOrder()))
+                .toList();
+        PriceDto futures = futuresQuotes.stream().map(PriceSnapshot::getPriceDate).max(Comparator.naturalOrder())
+                .flatMap(d -> spreads.calendar().pickNearMonth(
+                        futuresQuotes.stream().filter(s -> s.getPriceDate().equals(d)).toList(),
+                        PriceSnapshot::getContractMonth, d))
                 .map(PriceDto::from).orElse(null);
 
         Map<String, PriceSnapshot> latestPerMandi = new LinkedHashMap<>();
