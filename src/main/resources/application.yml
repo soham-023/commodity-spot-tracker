@@ -54,6 +54,10 @@ spot:
         - Turmeric (Unpolished)
         - Turmeric (Rajapore)
       timeout: 30s
+    ncdex-product:
+      # Contract calendar, daily margins and premium/discount matrix from <base-url>/products/<futures-symbol>
+      enabled: ${SPOT_NCDEX_PRODUCT_ENABLED:true}
+      timeout: 30s
     agmarknet:
       enabled: ${SPOT_AGMARKNET_ENABLED:true}
       # Free key from https://data.gov.in (My Account > Generate API key). Never commit it.

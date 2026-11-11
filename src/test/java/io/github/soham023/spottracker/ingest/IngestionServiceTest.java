@@ -34,7 +34,7 @@ class IngestionServiceTest {
         when(writer.upsert(anyCollection())).thenReturn(new SnapshotWriter.Counts(1, 0));
         ApplicationEventPublisher events = mock(ApplicationEventPublisher.class);
 
-        IngestionRun run = new IngestionService(List.of(broken, healthy, off), writer, events, clock).runAll();
+        IngestionRun run = new IngestionService(List.of(), List.of(broken, healthy, off), writer, events, clock).runAll();
 
         assertThat(run.sources()).extracting(SourceRunResult::source, SourceRunResult::status).containsExactly(
                 org.assertj.core.groups.Tuple.tuple("NCDEX", SourceRunResult.Status.FAILED),
@@ -43,6 +43,37 @@ class IngestionServiceTest {
         assertThat(run.sources().get(0).error()).contains("HTTP 503");
         assertThat(run.sources().get(1).inserted()).isEqualTo(1);
         verify(events).publishEvent(any(IngestionCompletedEvent.class));
+    }
+
+    @Test
+    void referenceJobsRunFirstAndTheirFailureIsIsolated() {
+        ReferenceDataJob product = new ReferenceDataJob() {
+            @Override
+            public String id() {
+                return "NCDEX_PRODUCT";
+            }
+
+            @Override
+            public boolean isEnabled() {
+                return true;
+            }
+
+            @Override
+            public SourceRunResult run() throws Exception {
+                throw new IOException("GET https://www.ncdex.com/products/TMCFGRNZM returned HTTP 502");
+            }
+        };
+        PriceSource healthy = source("AGMARKNET", true, List.of());
+        SnapshotWriter writer = mock(SnapshotWriter.class);
+        when(writer.upsert(anyCollection())).thenReturn(new SnapshotWriter.Counts(0, 0));
+
+        IngestionRun run = new IngestionService(List.of(product), List.of(healthy), writer,
+                mock(ApplicationEventPublisher.class), clock).runAll();
+
+        assertThat(run.sources()).extracting(SourceRunResult::source).containsExactly("NCDEX_PRODUCT", "AGMARKNET");
+        assertThat(run.sources().get(0).status()).isEqualTo(SourceRunResult.Status.FAILED);
+        assertThat(run.sources().get(0).error()).contains("HTTP 502");
+        assertThat(run.anySucceeded()).isTrue();
     }
 
     private static PriceSource source(String id, boolean enabled, List<PriceSnapshot> result) {

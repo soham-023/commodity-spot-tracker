@@ -10,5 +10,7 @@ spot:
   sources:
     ncdex:
       enabled: false
+    ncdex-product:
+      enabled: false
     agmarknet:
       enabled: false

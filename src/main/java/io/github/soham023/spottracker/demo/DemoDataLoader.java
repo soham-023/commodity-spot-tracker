@@ -1,11 +1,13 @@
 package io.github.soham023.spottracker.demo;
 
 import io.github.soham023.spottracker.alert.AlertService;
+import io.github.soham023.spottracker.contract.ContractDataWriter;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import io.github.soham023.spottracker.domain.PriceType;
 import io.github.soham023.spottracker.ingest.SnapshotWriter;
 import io.github.soham023.spottracker.source.Prices;
 import io.github.soham023.spottracker.source.ncdex.NcdexFuturesParser;
+import io.github.soham023.spottracker.source.ncdex.NcdexProductParser;
 import io.github.soham023.spottracker.source.ncdex.NcdexSpotParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +32,8 @@ import java.util.List;
  * without network access or API keys.
  * <ol>
  *   <li>{@code demo/turmeric-demo-history.csv}: ~10 weeks of <b>synthetic</b> spot, futures and mandi prices.</li>
- *   <li>{@code demo/ncdex-*.html}: NCDEX pages <b>recorded</b> on 2026-11-11, parsed by the real parsers.</li>
+ *   <li>{@code demo/ncdex-*.html}: NCDEX pages <b>recorded</b> on 2026-11-11 (live spot, live quotes and the
+ *   turmeric product page with margins and the premium/discount matrix), parsed by the real parsers.</li>
  * </ol>
  * Then runs alert evaluation so the alert list is populated too.
  */
@@ -41,11 +44,13 @@ public class DemoDataLoader implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(DemoDataLoader.class);
 
     private final SnapshotWriter writer;
+    private final ContractDataWriter contracts;
     private final AlertService alerts;
     private final Clock clock;
 
-    public DemoDataLoader(SnapshotWriter writer, AlertService alerts, Clock clock) {
+    public DemoDataLoader(SnapshotWriter writer, ContractDataWriter contracts, AlertService alerts, Clock clock) {
         this.writer = writer;
+        this.contracts = contracts;
         this.alerts = alerts;
         this.clock = clock;
     }
@@ -53,6 +58,9 @@ public class DemoDataLoader implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws IOException {
         Instant now = clock.instant();
+        var product = new NcdexProductParser().parse(read("demo/ncdex-product-turmeric.html"), "TMCFGRNZM");
+        var p = contracts.upsert(product, LocalDate.now(clock), now);
+
         List<PriceSnapshot> history = readCsv("demo/turmeric-demo-history.csv", now);
         var h = writer.upsert(history);
 
@@ -63,8 +71,11 @@ public class DemoDataLoader implements ApplicationRunner {
         var r = writer.upsert(recorded);
 
         int raised = alerts.evaluate("TURMERIC").size();
-        log.info("Demo data loaded: {} synthetic history rows ({} new), {} recorded NCDEX rows ({} new), {} alerts raised",
-                history.size(), h.inserted(), recorded.size(), r.inserted(), raised);
+        log.info("Demo data loaded: {} synthetic history rows ({} new), {} recorded NCDEX rows ({} new), "
+                        + "{} product-page rows ({} new), {} alerts raised",
+                history.size(), h.inserted(), recorded.size(), r.inserted(),
+                product.expiries().size() + product.margins().size() + product.premiumDiscounts().size(), p.inserted(),
+                raised);
     }
 
     static List<PriceSnapshot> readCsv(String path, Instant fetchedAt) throws IOException {
