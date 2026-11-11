@@ -36,8 +36,22 @@ public class HttpFetcher {
         return response.body();
     }
 
-    /** Hides api keys in log and error messages. */
+    public String postJson(String url, String json, Duration timeout) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(timeout)
+                .header("User-Agent", USER_AGENT)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() / 100 != 2) {
+            throw new IOException("POST " + redact(url) + " returned HTTP " + response.statusCode());
+        }
+        return response.body();
+    }
+
+    /** Hides api keys and bot tokens in log and error messages. */
     public static String redact(String url) {
-        return url.replaceAll("(?i)(api-key=)[^&]+", "$1***");
+        return url.replaceAll("(?i)(api-key=)[^&]+", "$1***").replaceAll("/bot[^/]+/", "/bot***/");
     }
 }

@@ -39,6 +39,10 @@ spot:
     benchmark-market: Nizamabad
     benchmark-variety: Farmer Polished
     max-spot-age-days: 7
+  alerts:
+    telegram-bot-token: ${TELEGRAM_BOT_TOKEN:}
+    telegram-chat-id: ${TELEGRAM_CHAT_ID:}
+    webhook-url: ${ALERT_WEBHOOK_URL:}
   sources:
     ncdex:
       enabled: ${SPOT_NCDEX_ENABLED:true}
