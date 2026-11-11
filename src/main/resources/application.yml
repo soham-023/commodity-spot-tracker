@@ -33,6 +33,12 @@ spot:
     scheduler-enabled: ${SPOT_SCHEDULER_ENABLED:true}
     cron: ${SPOT_INGEST_CRON:0 30 18 * * *}
     zone: Asia/Kolkata
+  spread:
+    threshold-pct: ${SPOT_SPREAD_THRESHOLD_PCT:5}
+    day-move-pct: ${SPOT_DAY_MOVE_PCT:3}
+    benchmark-market: Nizamabad
+    benchmark-variety: Farmer Polished
+    max-spot-age-days: 7
   sources:
     ncdex:
       enabled: ${SPOT_NCDEX_ENABLED:true}
