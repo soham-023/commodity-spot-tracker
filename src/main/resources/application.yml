@@ -29,6 +29,10 @@ springdoc:
     path: /swagger-ui.html
 
 spot:
+  ingest:
+    scheduler-enabled: ${SPOT_SCHEDULER_ENABLED:true}
+    cron: ${SPOT_INGEST_CRON:0 30 18 * * *}
+    zone: Asia/Kolkata
   sources:
     ncdex:
       enabled: ${SPOT_NCDEX_ENABLED:true}
