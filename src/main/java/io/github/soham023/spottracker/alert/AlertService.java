@@ -59,8 +59,9 @@ public class AlertService {
                 if (repository.existsByDedupeKey(key)) {
                     continue;
                 }
+                BigDecimal pct = flag == SpreadFlag.WIDE_SPREAD ? p.effectiveSpreadPct() : p.spreadPct();
                 Alert alert = repository.save(new Alert(p.commodity(), p.date(), p.kind(), p.label(), flag,
-                        p.spreadPct(), message(p, flag), clock.instant()));
+                        pct, message(p, flag), clock.instant()));
                 alert.markDelivered(dispatch(alert));
                 repository.save(alert);
                 created.add(alert);
@@ -87,18 +88,28 @@ public class AlertService {
 
     static String message(SpreadPoint p, SpreadFlag flag) {
         String name = p.commodity().charAt(0) + p.commodity().substring(1).toLowerCase(Locale.ROOT);
-        String what = p.kind() == SpreadKind.BASIS
-                ? "%s basis (%s futures vs NCDEX spot)".formatted(name, p.label())
-                : "%s at %s mandi vs NCDEX spot".formatted(name, p.label());
+        String what = switch (p.kind()) {
+            case BASIS -> "%s basis (%s futures vs NCDEX spot)".formatted(name, p.label());
+            case DELIVERY -> "%s delivery basis (near-month futures vs NCDEX %s spot)".formatted(name, p.label());
+            case MANDI -> "%s at %s mandi vs NCDEX spot".formatted(name, p.label());
+        };
         String detail = "%s ₹%s vs spot ₹%s polled %s".formatted(
-                p.kind() == SpreadKind.BASIS ? "futures" : "modal", rupees(p.comparedPrice()), rupees(p.spotPrice()),
+                p.kind() == SpreadKind.MANDI ? "modal" : "futures", rupees(p.comparedPrice()), rupees(p.spotPrice()),
                 p.spotDate());
         return switch (flag) {
-            case WIDE_SPREAD -> "%s on %s: %s%s%% (₹%s/qtl). %s".formatted(what, p.date(),
-                    p.spreadPct().signum() > 0 ? "+" : "", p.spreadPct().toPlainString(), rupees(p.spread()), detail);
-            case SHARP_MOVE -> "%s on %s: price moved %s%s%% day over day. %s".formatted(what, p.date(),
-                    p.priceMovePct().signum() > 0 ? "+" : "", p.priceMovePct().toPlainString(), detail);
+            case WIDE_SPREAD -> p.adjustedSpreadPct() != null && p.adjustmentPct().signum() != 0
+                    ? "%s on %s: %s%% (₹%s/qtl) after the NCDEX %s%% delivery %s; raw %s%%. %s".formatted(what, p.date(),
+                    signed(p.adjustedSpreadPct()), rupees(p.adjustedSpread()), signed(p.adjustmentPct()),
+                    p.adjustmentPct().signum() > 0 ? "premium" : "discount", signed(p.spreadPct()), detail)
+                    : "%s on %s: %s%% (₹%s/qtl). %s".formatted(what, p.date(), signed(p.spreadPct()),
+                    rupees(p.spread()), detail);
+            case SHARP_MOVE -> "%s on %s: price moved %s%% day over day. %s".formatted(what, p.date(),
+                    signed(p.priceMovePct()), detail);
         };
+    }
+
+    private static String signed(BigDecimal v) {
+        return (v.signum() > 0 ? "+" : "") + v.toPlainString();
     }
 
     private static String rupees(BigDecimal v) {

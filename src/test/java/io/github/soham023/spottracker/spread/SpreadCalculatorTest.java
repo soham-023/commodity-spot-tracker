@@ -1,6 +1,7 @@
 package io.github.soham023.spottracker.spread;
 
 import io.github.soham023.spottracker.contract.ContractCalendar;
+import io.github.soham023.spottracker.contract.DeliveryMatrixTest;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -16,6 +17,9 @@ class SpreadCalculatorTest {
     private static final Instant NOW = Instant.parse("2026-11-11T13:00:00Z");
     private static final LocalDate D1 = LocalDate.of(2026, 11, 10);
     private static final LocalDate D2 = LocalDate.of(2026, 11, 11);
+
+    private static final ContractCalendar CALENDAR = new ContractCalendar(
+            List.of(LocalDate.of(2026, 12, 18), LocalDate.of(2027, 4, 16), LocalDate.of(2027, 5, 20)), 5);
 
     private final SpreadCalculator calc = new SpreadCalculator(SpreadProperties.defaults());
 
@@ -119,6 +123,60 @@ class SpreadCalculatorTest {
                 org.assertj.core.groups.Tuple.tuple(late, "2027-04"));
         // without the calendar the expiring December contract would still be used
         assertThat(calc.compute("TURMERIC", data)).extracting(SpreadPoint::label).containsOnly("2026-12");
+    }
+
+    @Test
+    void rajaporeMandiPremiumDoesNotRaiseAFalseWideSpread() {
+        List<PriceSnapshot> data = List.of(
+                spot("Nizamabad", "Farmer Polished", "24000", D2),
+                mandi("Sangli", "Rajapuri", "25500", D2));
+
+        SpreadPoint raw = calc.compute("TURMERIC", data).getFirst();
+        SpreadPoint adjusted = calc.compute("TURMERIC", data, CALENDAR, DeliveryMatrixTest.published()).getFirst();
+
+        assertThat(raw.spreadPct()).isEqualByComparingTo("6.25");
+        assertThat(raw.flags()).containsExactly(SpreadFlag.WIDE_SPREAD);
+        assertThat(raw.adjustedSpreadPct()).isNull();
+
+        assertThat(adjusted.spreadPct()).isEqualByComparingTo("6.25");          // raw kept
+        assertThat(adjusted.adjustmentPct()).isEqualByComparingTo("4");
+        assertThat(adjusted.adjustedSpread()).isEqualByComparingTo("519.23");   // 25500 / 1.04 - 24000
+        assertThat(adjusted.adjustedSpreadPct()).isEqualByComparingTo("2.16");
+        assertThat(adjusted.flags()).isEmpty();
+    }
+
+    @Test
+    void deliveryBasisConvertsEachNcdexGradeToBasisEquivalent() {
+        List<PriceSnapshot> data = List.of(
+                spot("Nizamabad", "Farmer Polished", "24000", D2),
+                spot("Nizamabad", "Unpolished", "23040", D2),
+                spot("Sangli", "Rajapore", "28650", D2),
+                spot("Hingoli", "Other", "22000", D2),
+                futures("2026-12", "24500", D2));
+
+        List<SpreadPoint> points = calc.compute("TURMERIC", data, CALENDAR, DeliveryMatrixTest.published());
+
+        // Hingoli is not a delivery centre, so it gets no DELIVERY point
+        assertThat(points).extracting(SpreadPoint::kind, SpreadPoint::label).containsExactly(
+                org.assertj.core.groups.Tuple.tuple(SpreadKind.BASIS, "2026-12"),
+                org.assertj.core.groups.Tuple.tuple(SpreadKind.DELIVERY, "Rajapore @ Sangli"),
+                org.assertj.core.groups.Tuple.tuple(SpreadKind.DELIVERY, "Unpolished @ Nizamabad"));
+        SpreadPoint basis = points.get(0);
+        assertThat(basis.adjustmentPct()).isEqualByComparingTo("0");
+        assertThat(basis.adjustedSpreadPct()).isEqualByComparingTo(basis.spreadPct());
+
+        SpreadPoint unpolished = points.get(2);                                // 23040 / 0.96 = 24000
+        assertThat(unpolished.spreadPct()).isEqualByComparingTo("6.34");
+        assertThat(unpolished.adjustedSpread()).isEqualByComparingTo("500.00");
+        assertThat(unpolished.adjustedSpreadPct()).isEqualByComparingTo("2.08");
+        assertThat(unpolished.flags()).isEmpty();
+
+        SpreadPoint rajapore = points.get(1);                                  // 28650 / 1.04 = 27548.08
+        assertThat(rajapore.spread()).isEqualByComparingTo("-4150");
+        assertThat(rajapore.adjustedSpread()).isEqualByComparingTo("-3048.08");
+        assertThat(rajapore.adjustedSpreadPct()).isEqualByComparingTo("-11.06");
+        assertThat(rajapore.flags()).containsExactly(SpreadFlag.WIDE_SPREAD);
+        assertThat(rajapore.priceMovePct()).isNull();
     }
 
     @Test

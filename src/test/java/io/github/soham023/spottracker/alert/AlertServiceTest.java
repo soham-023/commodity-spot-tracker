@@ -94,4 +94,16 @@ class AlertServiceTest {
         assertThat(AlertService.message(move, SpreadFlag.SHARP_MOVE))
                 .startsWith("Turmeric at Sangli mandi vs NCDEX spot on 2026-11-11: price moved -4.10% day over day.");
     }
+
+    @Test
+    void wideSpreadMessageExplainsTheDeliveryAdjustment() {
+        SpreadPoint rajapore = new SpreadPoint("TURMERIC", DAY, SpreadKind.DELIVERY, "Rajapore @ Sangli",
+                new BigDecimal("28650"), LocalDate.of(2026, 11, 6), new BigDecimal("24500"), new BigDecimal("-4150"),
+                new BigDecimal("-14.49"), null, Set.of(SpreadFlag.WIDE_SPREAD), new BigDecimal("4.00"),
+                new BigDecimal("-3048.08"), new BigDecimal("-11.06"));
+        assertThat(AlertService.message(rajapore, SpreadFlag.WIDE_SPREAD)).isEqualTo(
+                "Turmeric delivery basis (near-month futures vs NCDEX Rajapore @ Sangli spot) on 2026-11-11: -11.06% "
+                        + "(₹-3,048.08/qtl) after the NCDEX +4.00% delivery premium; raw -14.49%. "
+                        + "futures ₹24,500 vs spot ₹28,650 polled 2026-11-06");
+    }
 }

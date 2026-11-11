@@ -61,8 +61,12 @@ public class PriceController {
     }
 
     @GetMapping("/spreads")
-    @Operation(summary = "Basis and mandi spreads", description =
-            "BASIS = near-month futures − NCDEX spot; MANDI = APMC modal − NCDEX spot. Flags mark spreads above the threshold or sharp daily moves.")
+    @Operation(summary = "Basis, delivery-grade and mandi spreads", description =
+            "BASIS = near-month futures − NCDEX spot (basis quality); DELIVERY = near-month futures − another NCDEX "
+                    + "deliverable grade; MANDI = APMC modal − NCDEX spot. spread/spreadPct are raw; adjustedSpread/"
+                    + "adjustedSpreadPct convert the grade to basis-quality equivalent with the NCDEX premium/discount "
+                    + "matrix (null when the matrix does not price it). Flags mark spreads above the threshold "
+                    + "(adjusted when available) or sharp daily moves.")
     public List<SpreadPoint> spreads(
             @RequestParam(defaultValue = "TURMERIC") @Pattern(regexp = COMMODITY_PATTERN) String commodity,
             @RequestParam(required = false) SpreadKind kind,
