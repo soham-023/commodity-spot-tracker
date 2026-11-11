@@ -1,0 +1,33 @@
+{
+  "index_name": "9ef84268-d588-465a-a308-a864a43d0070",
+  "title": "Current Daily Price of Various Commodities from Various Markets (Mandi)",
+  "field": [
+    { "name": "State", "id": "state", "type": "keyword" },
+    { "name": "District", "id": "district", "type": "keyword" },
+    { "name": "Market", "id": "market", "type": "keyword" },
+    { "name": "Commodity", "id": "commodity", "type": "keyword" },
+    { "name": "Variety", "id": "variety", "type": "keyword" },
+    { "name": "Grade", "id": "grade", "type": "keyword" },
+    { "name": "Arrival_Date", "id": "arrival_date", "type": "date" },
+    { "name": "Min_x0020_Price", "id": "min_price", "type": "double" },
+    { "name": "Max_x0020_Price", "id": "max_price", "type": "double" },
+    { "name": "Modal_x0020_Price", "id": "modal_price", "type": "double" }
+  ],
+  "message": "Resource lists",
+  "version": "2.2.0",
+  "status": "ok",
+  "total": 8,
+  "count": 8,
+  "limit": "1000",
+  "offset": "0",
+  "records": [
+    { "state": "Telangana", "district": "Nizamabad", "market": "Nizamabad", "commodity": "Turmeric", "variety": "Finger", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 21500, "max_price": 25200, "modal_price": 23400 },
+    { "state": "Telangana", "district": "Nizamabad", "market": "Nizamabad", "commodity": "Turmeric", "variety": "Bulb", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 20100, "max_price": 23300, "modal_price": 21800 },
+    { "state": "Maharashtra", "district": "Sangli", "market": "Sangli", "commodity": "Turmeric", "variety": "Rajapuri", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": "24000", "max_price": "29500", "modal_price": "26900" },
+    { "state": "Tamil Nadu", "district": "Erode", "market": "Erode", "commodity": "Turmeric", "variety": "Finger", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 22600, "max_price": 26100, "modal_price": 24350 },
+    { "state": "Maharashtra", "district": "Hingoli", "market": "Hingoli(Sant Namdev)", "commodity": "Turmeric", "variety": "Other", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 20500, "max_price": 24000, "modal_price": 22250 },
+    { "state": "Maharashtra", "district": "Hingoli", "market": "Basmat", "commodity": "Turmeric", "variety": "Other", "grade": "FAQ", "arrival_date": "10/11/2026", "min_price": 20000, "max_price": 23800, "modal_price": 21900 },
+    { "state": "Telangana", "district": "Warangal", "market": "Warangal", "commodity": "Turmeric", "variety": "Finger", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 20800, "max_price": 23900, "modal_price": 22300 },
+    { "state": "Andhra Pradesh", "district": "Guntur", "market": "Duggirala", "commodity": "Turmeric", "variety": "Finger", "grade": "FAQ", "arrival_date": "11/11/2026", "min_price": 19800, "max_price": 22900, "modal_price": 21400 }
+  ]
+}
