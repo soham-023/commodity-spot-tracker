@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: spottracker
+      POSTGRES_USER: spottracker
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spottracker}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spottracker -d spottracker"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SPOT_DB_URL: jdbc:postgresql://db:5432/spottracker
+      SPOT_DB_USER: spottracker
+      SPOT_DB_PASSWORD: ${POSTGRES_PASSWORD:-spottracker}
+
+volumes:
+  pgdata:
