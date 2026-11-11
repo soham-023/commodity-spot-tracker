@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Turmeric Spot Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Turmeric <span class="hi">हळद</span> spot tracker</h1>
+    <p class="sub">NCDEX spot vs futures vs APMC mandis · ₹ per quintal</p>
+  </div>
+  <div class="controls">
+    <label>Window
+      <select id="window">
+        <option value="30">30 days</option>
+        <option value="90" selected>90 days</option>
+        <option value="180">180 days</option>
+      </select>
+    </label>
+    <a href="swagger-ui.html" class="link">API docs</a>
+  </div>
+</header>
+
+<main>
+  <section class="cards" id="cards">
+    <div class="card"><h3>NCDEX spot</h3><p class="value" id="spot">–</p><p class="meta" id="spotMeta"></p></div>
+    <div class="card"><h3>Near-month futures</h3><p class="value" id="fut">–</p><p class="meta" id="futMeta"></p></div>
+    <div class="card"><h3>Basis</h3><p class="value" id="basis">–</p><p class="meta" id="basisMeta"></p></div>
+    <div class="card"><h3>Mandis tracked</h3><p class="value" id="mandiCount">–</p><p class="meta" id="mandiMeta"></p></div>
+  </section>
+
+  <section class="panel">
+    <h2>Price history</h2>
+    <div class="chart"><canvas id="priceChart"></canvas></div>
+  </section>
+
+  <section class="grid">
+    <div class="panel">
+      <h2>Basis (futures − spot)</h2>
+      <div class="chart small"><canvas id="basisChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Latest alerts</h2>
+      <ul id="alerts" class="alerts"><li class="muted">Loading…</li></ul>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Mandi vs NCDEX spot, latest</h2>
+    <table id="mandiTable">
+      <thead><tr><th>Mandi</th><th>Variety</th><th>Date</th><th class="r">Modal ₹/qtl</th><th class="r">Spread vs spot</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+  <p class="foot" id="foot"></p>
+</main>
+</body>
+</html>
