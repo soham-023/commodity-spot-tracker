@@ -27,3 +27,16 @@ management:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
+
+spot:
+  sources:
+    ncdex:
+      enabled: ${SPOT_NCDEX_ENABLED:true}
+      base-url: ${SPOT_NCDEX_BASE_URL:https://www.ncdex.com}
+      futures-symbol: TMCFGRNZM
+      basis-centre: Nizamabad
+      spot-names:
+        - Turmeric (Farmer Polished)
+        - Turmeric (Unpolished)
+        - Turmeric (Rajapore)
+      timeout: 30s
