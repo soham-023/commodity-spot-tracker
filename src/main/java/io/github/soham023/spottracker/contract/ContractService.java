@@ -25,6 +25,10 @@ public class ContractService {
         this.props = props;
     }
 
+    public List<ContractExpiry> expiries(String symbol) {
+        return expiries.findBySymbolOrderByExpiryDateAsc(symbol);
+    }
+
     /** Every expiry ever seen for {@code symbol}; empty until the product page has been scraped once. */
     public ContractCalendar calendar(String symbol) {
         return new ContractCalendar(expiries.findBySymbolOrderByExpiryDateAsc(symbol).stream()

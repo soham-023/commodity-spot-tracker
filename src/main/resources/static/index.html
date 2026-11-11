@@ -23,6 +23,7 @@
         <option value="180">180 days</option>
       </select>
     </label>
+    <a href="https://www.ncdex.com/products/TMCFGRNZM" class="link" id="productLink" target="_blank" rel="noopener">NCDEX product page</a>
     <a href="swagger-ui.html" class="link">API docs</a>
   </div>
 </header>
@@ -44,6 +45,8 @@
     <div class="panel">
       <h2>Basis (futures − spot)</h2>
       <div class="chart small"><canvas id="basisChart"></canvas></div>
+      <p class="meta">Bars: basis vs Farmer Polished Nizamabad (the contract's basis quality). Lines: other NCDEX
+        grades, solid = delivery-adjusted with the NCDEX premium/discount matrix, dashed = raw.</p>
     </div>
     <div class="panel">
       <h2>Latest alerts</h2>
@@ -54,9 +57,27 @@
   <section class="panel">
     <h2>Mandi vs NCDEX spot, latest</h2>
     <table id="mandiTable">
-      <thead><tr><th>Mandi</th><th>Variety</th><th>Date</th><th class="r">Modal ₹/qtl</th><th class="r">Spread vs spot</th></tr></thead>
+      <thead><tr><th>Mandi</th><th>Variety</th><th>Date</th><th class="r">Modal ₹/qtl</th><th class="r">Spread vs spot</th><th class="r">Delivery-adjusted</th></tr></thead>
       <tbody></tbody>
     </table>
+  </section>
+  <section class="grid">
+    <div class="panel">
+      <h2>NCDEX daily margins <span class="muted" id="marginDate"></span></h2>
+      <table id="marginTable">
+        <thead><tr><th>Expiry</th><th class="r">Days</th><th class="r">IM</th><th class="r">ELM</th><th class="r">Add. L/S</th><th class="r">Total</th><th class="r">Δ TM</th></tr></thead>
+        <tbody><tr><td colspan="7" class="muted">Loading…</td></tr></tbody>
+      </table>
+      <p class="meta">% of contract value. Near month (used for the basis) is highlighted.</p>
+    </div>
+    <div class="panel">
+      <h2>Premium / discount matrix <span class="muted" id="pdAsOf"></span></h2>
+      <table id="pdTable">
+        <thead><tr><th>Delivery</th><th class="r">Near month</th><th class="r">Spot ÷</th></tr></thead>
+        <tbody><tr><td colspan="3" class="muted">Loading…</td></tr></tbody>
+      </table>
+      <p class="meta" id="pdBasis"></p>
+    </div>
   </section>
   <p class="foot" id="foot"></p>
 </main>

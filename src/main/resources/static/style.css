@@ -43,3 +43,5 @@ th { font-size: .8rem; text-transform: uppercase; color: var(--muted); }
 .neg { color: var(--red); }
 .flag { font-weight: 700; }
 .foot { color: var(--muted); font-size: .8rem; margin-top: 1.5rem; }
+tr.near td { background: #fff6dc; }
+.panel .meta { margin-top: .5rem; font-size: .8rem; }
