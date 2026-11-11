@@ -1,6 +1,9 @@
 package io.github.soham023.spottracker.alert;
 
+import io.github.soham023.spottracker.contract.ContractService;
+import io.github.soham023.spottracker.contract.MarginChange;
 import io.github.soham023.spottracker.ingest.IngestionCompletedEvent;
+import io.github.soham023.spottracker.source.ncdex.NcdexProperties;
 import io.github.soham023.spottracker.spread.SpreadCalculator;
 import io.github.soham023.spottracker.spread.SpreadFlag;
 import io.github.soham023.spottracker.spread.SpreadKind;
@@ -18,6 +21,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 /**
  * Turns flagged spread points into alerts. Each (commodity, date, kind, label, flag) is alerted at most
@@ -32,12 +36,17 @@ public class AlertService {
     private final SpreadService spreads;
     private final AlertRepository repository;
     private final List<AlertChannel> channels;
+    private final ContractService contracts;
+    private final String futuresSymbol;
     private final Clock clock;
 
-    public AlertService(SpreadService spreads, AlertRepository repository, List<AlertChannel> channels, Clock clock) {
+    public AlertService(SpreadService spreads, AlertRepository repository, List<AlertChannel> channels,
+                        ContractService contracts, NcdexProperties ncdex, Clock clock) {
         this.spreads = spreads;
         this.repository = repository;
         this.channels = channels;
+        this.contracts = contracts;
+        this.futuresSymbol = ncdex.futuresSymbol();
         this.clock = clock;
     }
 
@@ -48,26 +57,53 @@ public class AlertService {
         }
     }
 
-    /** Raises alerts for the most recent date that has spread data. Returns the newly created alerts. */
+    /**
+     * Raises alerts for the most recent date that has spread data, and for a near-month total-margin change
+     * on the latest margin date. Returns the newly created alerts.
+     */
     public List<Alert> evaluate(String commodity) {
         LocalDate today = LocalDate.now(clock);
         List<SpreadPoint> latest = SpreadCalculator.latest(spreads.spreads(commodity, today.minusDays(14), today));
         List<Alert> created = new ArrayList<>();
         for (SpreadPoint p : latest) {
             for (SpreadFlag flag : p.flags()) {
-                String key = Alert.dedupeKey(p.commodity(), p.date(), p.kind(), p.label(), flag);
-                if (repository.existsByDedupeKey(key)) {
-                    continue;
-                }
                 BigDecimal pct = flag == SpreadFlag.WIDE_SPREAD ? p.effectiveSpreadPct() : p.spreadPct();
-                Alert alert = repository.save(new Alert(p.commodity(), p.date(), p.kind(), p.label(), flag,
-                        pct, message(p, flag), clock.instant()));
-                alert.markDelivered(dispatch(alert));
-                repository.save(alert);
-                created.add(alert);
+                raise(new Alert(p.commodity(), p.date(), AlertKind.of(p.kind()), p.label(), AlertFlag.of(flag),
+                        pct, message(p, flag), clock.instant())).ifPresent(created::add);
             }
         }
+        BigDecimal threshold = contracts.properties().marginAlertPoints();
+        contracts.nearMonthMarginChange(futuresSymbol)
+                .filter(change -> change.exceeds(threshold))
+                .flatMap(change -> raise(new Alert(commodity.toUpperCase(Locale.ROOT), change.marginDate(),
+                        AlertKind.MARGIN, change.expiry().toString(), AlertFlag.MARGIN_CHANGE, change.change(),
+                        marginMessage(commodity, change), clock.instant())))
+                .ifPresent(created::add);
         return created;
+    }
+
+    private Optional<Alert> raise(Alert candidate) {
+        if (repository.existsByDedupeKey(candidate.getDedupeKey())) {
+            return Optional.empty();
+        }
+        Alert alert = repository.save(candidate);
+        alert.markDelivered(dispatch(alert));
+        repository.save(alert);
+        return Optional.of(alert);
+    }
+
+    static String marginMessage(String commodity, MarginChange c) {
+        String name = commodity.charAt(0) + commodity.substring(1).toLowerCase(Locale.ROOT);
+        return "%s %s futures (%s, expiry %s): NCDEX total margin %s from %s%% to %s%% (%s pts) on %s vs %s. "
+                .formatted(name, c.expiry().toString().substring(0, 7), c.symbol(), c.expiry(),
+                        c.change().signum() > 0 ? "raised" : "cut", c.previousTotalMargin().toPlainString(),
+                        c.totalMargin().toPlainString(), signed(c.change()), c.marginDate(), c.previousDate())
+                + "Additional margin long %s%%, short %s%% (%s margin file)."
+                .formatted(plain(c.additionalLong()), plain(c.additionalShort()), c.fileType());
+    }
+
+    private static String plain(BigDecimal v) {
+        return v == null ? "–" : v.toPlainString();
     }
 
     private String dispatch(Alert alert) {

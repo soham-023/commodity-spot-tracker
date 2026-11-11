@@ -1,5 +1,9 @@
 package io.github.soham023.spottracker.alert;
 
+import io.github.soham023.spottracker.contract.ContractProperties;
+import io.github.soham023.spottracker.contract.ContractService;
+import io.github.soham023.spottracker.contract.MarginChange;
+import io.github.soham023.spottracker.source.ncdex.NcdexProperties;
 import io.github.soham023.spottracker.spread.SpreadFlag;
 import io.github.soham023.spottracker.spread.SpreadKind;
 import io.github.soham023.spottracker.spread.SpreadPoint;
@@ -13,6 +17,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +34,12 @@ import static org.mockito.Mockito.when;
 class AlertServiceTest {
 
     private static final LocalDate DAY = LocalDate.of(2026, 11, 11);
+    private static final NcdexProperties NCDEX = new NcdexProperties(true, null, null, null, null, null);
+    private final ContractService contracts = mock(ContractService.class);
+
+    {
+        when(contracts.properties()).thenReturn(ContractProperties.defaults());
+    }
     private final Clock clock = Clock.fixed(Instant.parse("2026-11-11T13:00:00Z"), ZoneId.of("Asia/Kolkata"));
 
     private final SpreadPoint wideBasis = new SpreadPoint("TURMERIC", DAY, SpreadKind.BASIS, "2026-12",
@@ -55,7 +66,7 @@ class AlertServiceTest {
         when(channel.name()).thenReturn("test");
         AlertChannel disabled = mock(AlertChannel.class);
 
-        AlertService service = new AlertService(spreads, repo, List.of(channel, disabled), clock);
+        AlertService service = new AlertService(spreads, repo, List.of(channel, disabled), contracts, NCDEX, clock);
         List<Alert> first = service.evaluate("TURMERIC");
         List<Alert> second = service.evaluate("TURMERIC");
 
@@ -81,7 +92,7 @@ class AlertServiceTest {
         doThrow(new RuntimeException("401 Unauthorized")).when(broken).send(any());
         AlertChannel log = new LogAlertChannel();
 
-        List<Alert> created = new AlertService(spreads, repo, List.of(broken, log), clock).evaluate("TURMERIC");
+        List<Alert> created = new AlertService(spreads, repo, List.of(broken, log), contracts, NCDEX, clock).evaluate("TURMERIC");
 
         assertThat(created.getFirst().getDeliveredTo()).isEqualTo("log");
     }
@@ -105,5 +116,50 @@ class AlertServiceTest {
                 "Turmeric delivery basis (near-month futures vs NCDEX Rajapore @ Sangli spot) on 2026-11-11: -11.06% "
                         + "(₹-3,048.08/qtl) after the NCDEX +4.00% delivery premium; raw -14.49%. "
                         + "futures ₹24,500 vs spot ₹28,650 polled 2026-11-06");
+    }
+
+    @Test
+    void nearMonthMarginHikeIsAlertedOncePerMarginDate() {
+        SpreadService spreads = mock(SpreadService.class);
+        when(spreads.spreads(eq("TURMERIC"), any(), any())).thenReturn(List.of());
+        MarginChange hike = new MarginChange("TMCFGRNZM", LocalDate.of(2026, 12, 18), LocalDate.of(2026, 11, 12),
+                "Morning", new BigDecimal("27.79"), DAY, new BigDecimal("17.79"), new BigDecimal("10.00"),
+                new BigDecimal("20.00"), new BigDecimal("20.00"));
+        when(contracts.nearMonthMarginChange("TMCFGRNZM")).thenReturn(Optional.of(hike));
+        AlertRepository repo = mock(AlertRepository.class);
+        Set<String> stored = new HashSet<>();
+        when(repo.existsByDedupeKey(anyString())).thenAnswer(inv -> stored.contains(inv.<String>getArgument(0)));
+        when(repo.save(any(Alert.class))).thenAnswer(inv -> {
+            Alert a = inv.getArgument(0);
+            stored.add(a.getDedupeKey());
+            return a;
+        });
+        AlertService service = new AlertService(spreads, repo, List.of(new LogAlertChannel()), contracts, NCDEX, clock);
+
+        List<Alert> first = service.evaluate("TURMERIC");
+
+        assertThat(first).singleElement().satisfies(a -> {
+            assertThat(a.getKind()).isEqualTo(AlertKind.MARGIN);
+            assertThat(a.getFlag()).isEqualTo(AlertFlag.MARGIN_CHANGE);
+            assertThat(a.getDedupeKey()).isEqualTo("TURMERIC|2026-11-12|MARGIN|2026-12-18|MARGIN_CHANGE");
+            assertThat(a.getSpreadPct()).isEqualByComparingTo("10");
+            assertThat(a.getMessage()).isEqualTo("Turmeric 2026-12 futures (TMCFGRNZM, expiry 2026-12-18): NCDEX total "
+                    + "margin raised from 17.79% to 27.79% (+10.00 pts) on 2026-11-12 vs 2026-11-11. "
+                    + "Additional margin long 20.00%, short 20.00% (Morning margin file).");
+        });
+        assertThat(service.evaluate("TURMERIC")).isEmpty();
+    }
+
+    @Test
+    void marginChangeWithinThresholdIsIgnored() {
+        SpreadService spreads = mock(SpreadService.class);
+        when(spreads.spreads(eq("TURMERIC"), any(), any())).thenReturn(List.of());
+        when(contracts.nearMonthMarginChange("TMCFGRNZM")).thenReturn(Optional.of(new MarginChange("TMCFGRNZM",
+                LocalDate.of(2026, 12, 18), LocalDate.of(2026, 11, 12), "Morning", new BigDecimal("18.79"), DAY,
+                new BigDecimal("17.79"), new BigDecimal("1.00"), null, null)));
+        AlertRepository repo = mock(AlertRepository.class);
+
+        assertThat(new AlertService(spreads, repo, List.of(), contracts, NCDEX, clock).evaluate("TURMERIC")).isEmpty();
+        verify(repo, never()).save(any());
     }
 }

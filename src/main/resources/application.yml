@@ -42,6 +42,8 @@ spot:
   contracts:
     # Near month rolls to the next expiry this many calendar days before expiry
     roll-days: ${SPOT_ROLL_DAYS:5}
+    # Alert when near-month total margin (% of contract value) moves more than this many points day over day
+    margin-alert-points: ${SPOT_MARGIN_ALERT_POINTS:2}
   alerts:
     telegram-bot-token: ${TELEGRAM_BOT_TOKEN:}
     telegram-chat-id: ${TELEGRAM_CHAT_ID:}

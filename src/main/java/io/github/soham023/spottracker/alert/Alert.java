@@ -1,7 +1,5 @@
 package io.github.soham023.spottracker.alert;
 
-import io.github.soham023.spottracker.spread.SpreadFlag;
-import io.github.soham023.spottracker.spread.SpreadKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -15,7 +13,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-/** A spread flag that was raised; {@code dedupeKey} guarantees one alert per flag per day. */
+/** A spread or margin flag that was raised; {@code dedupeKey} guarantees one alert per flag per day. */
 @Entity
 @Table(name = "alert")
 public class Alert {
@@ -32,15 +30,16 @@ public class Alert {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
-    private SpreadKind kind;
+    private AlertKind kind;
 
     @Column(nullable = false, length = 80)
     private String label;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private SpreadFlag flag;
+    private AlertFlag flag;
 
+    /** Spread % for spread alerts; change in total margin (percentage points) for MARGIN alerts. */
     @Column(name = "spread_pct", precision = 8, scale = 2)
     private BigDecimal spreadPct;
 
@@ -59,7 +58,7 @@ public class Alert {
     protected Alert() {
     }
 
-    public Alert(String commodity, LocalDate alertDate, SpreadKind kind, String label, SpreadFlag flag,
+    public Alert(String commodity, LocalDate alertDate, AlertKind kind, String label, AlertFlag flag,
                  BigDecimal spreadPct, String message, Instant createdAt) {
         this.commodity = commodity;
         this.alertDate = alertDate;
@@ -72,7 +71,7 @@ public class Alert {
         this.dedupeKey = dedupeKey(commodity, alertDate, kind, label, flag);
     }
 
-    public static String dedupeKey(String commodity, LocalDate date, SpreadKind kind, String label, SpreadFlag flag) {
+    public static String dedupeKey(String commodity, LocalDate date, AlertKind kind, String label, AlertFlag flag) {
         return String.join("|", commodity, date.toString(), kind.name(), label, flag.name());
     }
 
@@ -83,9 +82,9 @@ public class Alert {
     public Long getId() { return id; }
     public String getCommodity() { return commodity; }
     public LocalDate getAlertDate() { return alertDate; }
-    public SpreadKind getKind() { return kind; }
+    public AlertKind getKind() { return kind; }
     public String getLabel() { return label; }
-    public SpreadFlag getFlag() { return flag; }
+    public AlertFlag getFlag() { return flag; }
     public BigDecimal getSpreadPct() { return spreadPct; }
     public String getMessage() { return message; }
     public String getDedupeKey() { return dedupeKey; }

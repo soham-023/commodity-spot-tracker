@@ -26,8 +26,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties =
         "spring.datasource.url=jdbc:h2:mem:contracts;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH")
-@Import(ContractDataWriter.class)
+@Import({ContractDataWriter.class, ContractService.class, ContractDataWriterTest.Props.class})
 class ContractDataWriterTest {
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class Props {
+        @org.springframework.context.annotation.Bean
+        ContractProperties contractProperties() {
+            return ContractProperties.defaults();
+        }
+    }
 
     private static final LocalDate TODAY = LocalDate.of(2026, 11, 11);
     private static final LocalDate DEC = LocalDate.of(2026, 12, 18);
@@ -40,6 +48,8 @@ class ContractDataWriterTest {
     DailyMarginRepository margins;
     @Autowired
     PremiumDiscountRepository matrix;
+    @Autowired
+    ContractService service;
 
     private final NcdexProductPage page = new NcdexProductParser()
             .parse(Fixtures.read("ncdex-product-turmeric.html"), "TMCFGRNZM");
@@ -85,6 +95,31 @@ class ContractDataWriterTest {
         margins.saveAndFlush(DailyMargin.from("TMCFGRNZM", page.margins().getFirst(), at));
         assertThatThrownBy(() -> margins.saveAndFlush(DailyMargin.from("TMCFGRNZM", page.margins().getFirst(), at)))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void serviceReportsTheNearMonthMarginChangeAndLatestMatrix() {
+        writer.upsert(page, TODAY, Instant.parse("2026-11-11T04:00:00Z"));
+        assertThat(service.nearMonthMarginChange("TMCFGRNZM")).isEmpty();
+
+        writer.upsert(nextDay(withDecemberTotalMargin(page, "27.79")), TODAY.plusDays(1),
+                Instant.parse("2026-11-12T04:00:00Z"));
+
+        MarginChange change = service.nearMonthMarginChange("TMCFGRNZM").orElseThrow();
+        assertThat(change.expiry()).isEqualTo(DEC);
+        assertThat(change.change()).isEqualByComparingTo("10");
+        assertThat(service.calendar("TMCFGRNZM").nearMonth(TODAY)).contains(DEC);
+        assertThat(service.latestMatrixRows("TMCFGRNZM")).hasSize(16)
+                .allMatch(p -> p.getAsOfDate().equals(TODAY.plusDays(1)));
+        assertThat(service.deliveryMatrix("TMCFGRNZM").forGrade(DEC, "Sangli", "Rajapore")).isPresent();
+    }
+
+    private static NcdexProductPage nextDay(NcdexProductPage p) {
+        return new NcdexProductPage(p.symbol(), p.lastTradedPrice(), p.change(), p.expiries(),
+                p.margins().stream().map(m -> new NcdexProductPage.Margin(m.fileType(), m.marginDate().plusDays(1),
+                        m.expiry(), m.initialMargin(), m.extremeMargin(), m.additionalPem(), m.totalMargin(),
+                        m.additionalLong(), m.additionalShort(), m.specialLong(), m.specialShort())).toList(),
+                p.premiumDiscounts());
     }
 
     static NcdexProductPage withDecemberTotalMargin(NcdexProductPage p, String tm) {
