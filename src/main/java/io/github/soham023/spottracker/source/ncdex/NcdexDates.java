@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,6 +19,10 @@ final class NcdexDates {
     private static final DateTimeFormatter POLL_FMT = ci("MMM dd yyyy | hh:mm a");
     /** "18-Dec-2026" */
     static final DateTimeFormatter EXPIRY_FMT = ci("dd-MMM-yyyy");
+    /** "11-Nov-26" (product page margin and premium/discount tables) */
+    private static final DateTimeFormatter SHORT_FMT = new DateTimeFormatterBuilder().parseCaseInsensitive()
+            .appendPattern("dd-MMM-").appendValueReduced(ChronoField.YEAR, 2, 2, 2000)
+            .toFormatter(Locale.ENGLISH);
 
     private NcdexDates() {
     }
@@ -40,5 +45,17 @@ final class NcdexDates {
 
     static LocalDate expiry(String text) {
         return LocalDate.parse(text.trim(), EXPIRY_FMT);
+    }
+
+    /** Accepts every date shape the product page mixes: "2026-12-18", "18-Dec-2026" and "18-Dec-26". */
+    static LocalDate anyDate(String text) {
+        String t = text.trim();
+        if (t.matches("\\d{4}-\\d{2}-\\d{2}")) {
+            return LocalDate.parse(t);
+        }
+        if (t.matches("\\d{1,2}-[A-Za-z]{3}-\\d{4}")) {
+            return LocalDate.parse(t, EXPIRY_FMT);
+        }
+        return LocalDate.parse(t, SHORT_FMT);
     }
 }

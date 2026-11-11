@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<!-- Recorded from https://www.ncdex.com/products/TMCFGRNZM on 2026-11-11 IST (curl, HTTP 200).
+     Trimmed to the LTP block, expiry selectors, "Daily margin information" and "Premium Discount Matrix" tables;
+     markup inside those elements is unchanged. -->
+<html><head><meta charset="utf-8"><title>TURMERIC | NCDEX</title></head>
+<body><h1 class="pt-3 m-0" title="TURMERIC">TURMERIC</h1>
+<div class="product-value">
+                                                                        LTP 28746 
+                                    <span class="plus">
+                                        + 332
+                                        <font>
+                                            <img src="https://www.ncdex.com/public/images/icons/arrow_chart_up.png" alt="Chart Change Arrow">
+                                        </font>
+                                    </span>
+                                                                    </div>
+<select class="form-control" id="exp_date" onchange="graph_price()" aria-label="Expiry Date">
+                                                                <option value="2027-04-16">16-Apr-2027</option>
+                                                                <option value="2026-12-18">18-Dec-2026</option>
+                                                            </select>
+<table id="example2" class="table table-bordered table-hover quote-table">
+                                    <thead>
+                                        <tr>
+
+                                            <th scope="col">File Type</th>
+                                            <th scope="col">Margin Date</th>
+                                            <th scope="col">Expiry</th>
+                                            <th scope="col">IM</th>
+                                            <th scope="col">EM</th>
+                                            <th scope="col">Add. PEM</th>
+                                            <th scope="col">TM</th>
+                                            <th scope="col">Add. Long</th>
+                                            <th scope="col">Add. Short</th>
+                                            <th scope="col">SPCML</th>
+                                            <th scope="col">SPCMS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                                                                <tr>
+
+                                            <td>Morning</td>
+                                            <td>11-Nov-26</td>
+                                            <td>2026-12-18</td>
+                                            <td>14.79</td>
+                                            <td>3</td>
+                                            <td>0</td>
+                                            <td>17.79</td>
+                                            <td>10</td>
+                                            <td>10</td>
+                                            <td>0</td>
+                                            <td>0</td>
+                                        </tr>
+                                                                                <tr>
+
+                                            <td>Morning</td>
+                                            <td>11-Nov-26</td>
+                                            <td>2027-04-16</td>
+                                            <td>15.47</td>
+                                            <td>3</td>
+                                            <td>0</td>
+                                            <td>18.47</td>
+                                            <td>2.5</td>
+                                            <td>2.5</td>
+                                            <td>0</td>
+                                            <td>0</td>
+                                        </tr>
+                                                                                <tr>
+
+                                            <td>Morning</td>
+                                            <td>11-Nov-26</td>
+                                            <td>2027-05-20</td>
+                                            <td>12.2</td>
+                                            <td>3</td>
+                                            <td>0</td>
+                                            <td>15.2</td>
+                                            <td>2.5</td>
+                                            <td>2.5</td>
+                                            <td>0</td>
+                                            <td>0</td>
+                                        </tr>
+                                                                            </tbody>
+                                </table>
+<select class="form-control" id="premdisc_expdate" onchange="premDiscBody()">
+                                    <option value=''>------- Select Expiry Date -------</option>
+                                                                        <option value="2027-05-20">20-May-2027</option>
+                                                                        <option value="2027-04-16">16-Apr-2027</option>
+                                                                        <option value="2026-12-18">18-Dec-2026</option>
+                                                                    </select>
+<table id="example3" class="table table-bordered table-hover quote-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Contract</th>
+                                            <th scope="col">Expiry</th>
+                                            <th scope="col">Basis Location</th>
+                                            <th scope="col">Location</th>
+                                            <th scope="col">Premium/Discount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preDiscBody">
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Unpolished Fingers at Nizamabad </td>
+                                            <td>- 4%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Farmer polished fingers Nizamabad quality at Nizamabad</td>
+                                            <td>Basis</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Rajapore quality at Sangli</td>
+                                            <td> + 4%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Erode quality at Erode</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Erode</td>
+                                            <td> + 2%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>18-Dec-26</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Basmat</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>16-Apr-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Farmer polished fingers Nizamabad quality at Nizamabad</td>
+                                            <td>Basis</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>16-Apr-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Rajapore quality at Sangli</td>
+                                            <td>+4%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>16-Apr-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Erode quality at Erode</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>16-Apr-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Erode</td>
+                                            <td>+2%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>16-Apr-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Basmat</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>20-May-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Farmer polished fingers Nizamabad quality at Nizamabad</td>
+                                            <td>Basis</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>20-May-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Rajapore quality at Sangli</td>
+                                            <td>+4%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>20-May-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Erode quality at Erode</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>20-May-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Erode</td>
+                                            <td>+2%</td>
+                                        </tr>
+                                                                                <tr>
+                                            <td class="pname">TMCFGRNZM</td>
+                                            <td>20-May-27</td>
+                                            <td>Nizamabad</td>
+                                            <td>Salem quality at Basmat</td>
+                                            <td>No Premium/Discount</td>
+                                        </tr>
+                                                                            </tbody>
+                                </table>
+</body></html>
