@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: commodity-spot-tracker
+  datasource:
+    url: ${SPOT_DB_URL:jdbc:h2:file:./data/spottracker;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${SPOT_DB_USER:sa}
+    password: ${SPOT_DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+server:
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
