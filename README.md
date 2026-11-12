@@ -120,6 +120,8 @@ Rules worth knowing:
 | NCDEX Live Spot Quotes (`https://www.ncdex.com/markets/livespot`) | **Works live.** Public, server-rendered HTML parsed with jsoup. | Nothing |
 | NCDEX Live Quotes (`https://www.ncdex.com/market-watch/live_quotes`) | **Works live.** All `TMCFGRNZM` expiries; last traded price, low and high. | Nothing |
 | NCDEX product page ([`https://www.ncdex.com/products/TMCFGRNZM`](https://www.ncdex.com/products/TMCFGRNZM)) | **Works live.** Server-rendered tables: active expiries (union of the futures selector, margin table and matrix), *Daily margin information* (IM, ELM, Add. PEM, TM, Add. Long/Short, SPCML/SPCMS in % of contract value) and the *Premium Discount Matrix*. Stored in `contract_expiry`, `daily_margin` and `premium_discount`, upserted per date/expiry/location. | Nothing |
+| NCDEX Futures Prices history (`/markets/futureprices` → `POST /futureprices/filters`, `POST /futureprices/get_data`) | **Implemented, tested on recorded responses.** Daily OHLC per `TMCFGRNZM` expiry. Each POST needs the session cookie from a GET of the page, its `csrf-token` as `_token`, `X-Requested-With` and a Referer; `length=-1` breaks the server, so the source asks for 2,000 rows. | Nothing |
+| NCDEX Spot Prices history (`/markets/spotprices` → `POST /spotprices/price_graph`) | **Implemented, tested on recorded responses.** Polled spot for Farmer Polished (TMCFGRNZM), Unpolished (TMCFUPNZM) and Rajapore (TMCRJPSGL). NCDEX serves only ~30 days back. | Nothing |
 | data.gov.in resource [`9ef84268-d588-465a-a308-a864a43d0070`](https://data.gov.in/apis/9ef84268-d588-465a-a308-a864a43d0070) | Implemented and tested against the documented schema. **Disabled until you set a key.** | `DATA_GOV_API_KEY` |
 
 Get a free data.gov.in key by signing up at <https://data.gov.in> and choosing *Generate API key*. data.gov.in also publishes a shared sample key on its API pages, but it returns only 10 records per call, so use your own. Never commit a key; pass it as an environment variable.
@@ -127,6 +129,22 @@ Get a free data.gov.in key by signing up at <https://data.gov.in> and choosing *
 The product page also links the contract specification and product note zips, historical futures/spot prices and circulars (contract specification changes, pre-expiry margins, *Imposition of Additional Margin*); those are not parsed — the margin alert picks up the effect of an additional-margin circular from the margin table itself.
 
 The parsers are tested against fixtures in `src/test/resources/fixtures`. The NCDEX pages there were **recorded** on 11 Nov 2026. The mandi JSON is **synthetic**: it follows the API schema, but its prices are illustrative. See [fixtures/README](src/test/resources/fixtures/README.md).
+
+### Real data shipped with the app
+
+`src/main/resources/seed/` holds real NCDEX turmeric prices downloaded on 12 Nov 2026 (details in
+[seed/README](src/main/resources/seed/README.md)). On the default profile `SeedDataLoader` loads them when the
+price table is empty, so the dashboard opens with data. Nothing in it is synthetic.
+
+| Series | Range | Rows |
+| --- | --- | --- |
+| TMCFGRNZM futures, all 34 expiries (close, low, high) | 2022-01-03 → 2026-11-11 | 4,121 |
+| Spot, Farmer Polished Nizamabad: bhavcopy underlying + polls | 2025-11-10 → 2026-11-11 | 193 |
+| Spot, Unpolished Nizamabad (polls) | 2026-10-09 → 2026-11-11 | 17 |
+| Spot, Rajapore Sangli (polls) | 2026-10-08 → 2026-11-11 | 22 |
+
+Older Farmer Polished spot comes from the `UndrlygPric` column of the daily final bhavcopy, which repeats the
+last poll on days NCDEX did not poll. Spot before Nov 2025 is not included (futures are).
 
 ## Run it
 
@@ -140,13 +158,18 @@ mvn spring-boot:run -Dspring-boot.run.profiles=demo
 # API docs   http://localhost:8080/swagger-ui.html
 ```
 
-**2. Local with live sources** (H2 file database in `./data`):
+**2. Local with real data and live sources** (H2 file database in `./data`):
 
 ```bash
 export DATA_GOV_API_KEY=your-key   # optional; without it only NCDEX runs
 mvn spring-boot:run
-curl -X POST http://localhost:8080/api/v1/ingest/run
+# First start on an empty DB loads the real NCDEX seed (2022 → 11 Nov 2026), then a background
+# startup ingest backfills the last 30 days and runs the live sources.
+curl -X POST "http://localhost:8080/api/v1/ingest/backfill?from=2026-10-01"   # any range, re-runnable
+curl -o turmeric.csv "http://localhost:8080/api/v1/prices/export.csv?from=2022-01-01"
 ```
+
+Delete `./data` to start over; the seed loads again on the next start.
 
 **3. Docker with Postgres:**
 
@@ -165,7 +188,10 @@ docker compose up --build
 | `GET` | `/api/v1/premium-discount` | `symbol`, optional `expiry` (ISO date). Latest matrix with `premiumPct` and the basis-equivalent `divisor`. |
 | `GET` | `/api/v1/alerts` | `from`, `page`, `size` |
 | `GET` | `/api/v1/summary` | Latest spot, futures, mandis, spreads and alerts. Returns 404 if the commodity has no data. |
+| `GET` | `/api/v1/prices/status` | Row count, first/last price date, last update time and futures contract months |
+| `GET` | `/api/v1/prices/export.csv` | Every price in `from`..`to` (default 90 days) as CSV, oldest first; optional `type` and `contract` (`yyyy-MM`) |
 | `POST` | `/api/v1/ingest/run` | Runs every enabled source now and reports OK, FAILED or SKIPPED for each |
+| `POST` | `/api/v1/ingest/backfill` | `from`, `to` (default last 30 days). NCDEX futures history for every expiry trading in the range, plus spot history (~30 days served). Upserts. |
 
 Errors are RFC 9457 problem details. Invalid parameters or a `from` after `to` return 400; unknown data returns 404.
 
@@ -181,7 +207,10 @@ curl "http://localhost:8080/api/v1/spreads?kind=BASIS&flaggedOnly=true"
 | `SPOT_DB_USER` / `SPOT_DB_PASSWORD` | `sa` / empty | Database credentials |
 | `SPOT_INGEST_CRON` | `0 30 18 * * *` | Spring cron, evaluated in Asia/Kolkata |
 | `SPOT_SCHEDULER_ENABLED` | `true` | Turns the daily job off (the manual endpoint still works) |
-| `SPOT_NCDEX_ENABLED` | `true` | NCDEX source on or off |
+| `SPOT_NCDEX_ENABLED` | `true` | NCDEX live and history sources on or off |
+| `SPOT_SEED_ENABLED` | `true` | Load the shipped real NCDEX history when the price table is empty (default profile only) |
+| `SPOT_INGEST_ON_STARTUP` | `true` | Background ingest after startup: backfill, then the live sources (default profile only) |
+| `SPOT_STARTUP_BACKFILL_DAYS` | `30` | Days of NCDEX history the startup ingest backfills (0 = skip backfill) |
 | `SPOT_NCDEX_PRODUCT_ENABLED` | `true` | NCDEX product page (calendar, margins, premium/discount matrix) on or off |
 | `SPOT_ROLL_DAYS` | `5` | Calendar days before expiry at which the near month rolls to the next contract |
 | `SPOT_MARGIN_ALERT_POINTS` | `2` | `MARGIN_CHANGE` threshold: near-month TM change in percentage points of contract value |

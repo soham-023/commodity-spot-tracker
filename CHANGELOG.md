@@ -3,6 +3,23 @@
 ## Unreleased
 
 ### Added
+- **Real NCDEX data out of the box.** `src/main/resources/seed/` ships 4,121 daily TMCFGRNZM futures rows
+  (34 expiries, 2022-01-03 → 2026-11-11) and 232 spot rows (Farmer Polished from the bhavcopy underlying since
+  2025-11-10, plus polls for all three centres since 2026-10-08), fetched from ncdex.com on 2026-11-12.
+  `SeedDataLoader` loads them on the default profile when the price table is empty (`SPOT_SEED_ENABLED`).
+- `NcdexFuturesHistorySource` and `NcdexSpotHistorySource` (session cookie + CSRF handshake) and
+  `POST /api/v1/ingest/backfill?from=&to=`.
+- Startup ingest on a background thread: backfill the last `SPOT_STARTUP_BACKFILL_DAYS`, then run the live
+  sources (`SPOT_INGEST_ON_STARTUP`).
+- `GET /api/v1/prices/status` and `GET /api/v1/prices/export.csv`.
+- Dashboard: defaults to the full stored range, date pickers and presets, contract selector (near month or any
+  expiry) driving the spot-vs-futures and basis charts, paged table of every price with CSV download,
+  last-updated stamp, and an empty state with an *Ingest from NCDEX* button.
+
+### Fixed
+- The default profile showed an empty dashboard until the first scheduled run.
+- `DemoProfileIntegrationTest` used the system clock, so its near-month assertions would break after the
+  18 Dec 2026 expiry; it now runs on a fixed `Clock`.
 - **NCDEX product page source** (`https://www.ncdex.com/products/TMCFGRNZM`): contract calendar, daily
   margins per expiry and the premium/discount matrix, stored in `contract_expiry`, `daily_margin` and
   `premium_discount` (Flyway `V3`), upserted per date/expiry/location. Runs before the price sources in
