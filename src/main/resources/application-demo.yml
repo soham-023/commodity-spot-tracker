@@ -5,8 +5,11 @@ spring:
     url: jdbc:h2:mem:demo;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
 
 spot:
+  seed:
+    enabled: false
   ingest:
     scheduler-enabled: false
+    on-startup: false
   sources:
     ncdex:
       enabled: false

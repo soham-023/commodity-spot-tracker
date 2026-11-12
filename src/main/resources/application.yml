@@ -29,8 +29,14 @@ springdoc:
     path: /swagger-ui.html
 
 spot:
+  seed:
+    # Load real NCDEX turmeric history from classpath:seed/ when the price table is empty
+    enabled: ${SPOT_SEED_ENABLED:true}
   ingest:
     scheduler-enabled: ${SPOT_SCHEDULER_ENABLED:true}
+    # On startup (background thread): run every live source, then backfill the last N days of NCDEX history
+    on-startup: ${SPOT_INGEST_ON_STARTUP:true}
+    startup-backfill-days: ${SPOT_STARTUP_BACKFILL_DAYS:30}
     cron: ${SPOT_INGEST_CRON:0 30 18 * * *}
     zone: Asia/Kolkata
   spread:
