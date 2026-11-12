@@ -16,7 +16,7 @@ import java.util.List;
 public class NcdexPriceSource implements PriceSource {
 
     public static final String ID = "NCDEX";
-    static final String COMMODITY = "TURMERIC";
+    public static final String COMMODITY = "TURMERIC";
 
     private final NcdexProperties props;
     private final HttpFetcher http;

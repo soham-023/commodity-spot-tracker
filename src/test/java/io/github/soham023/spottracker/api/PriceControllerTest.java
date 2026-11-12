@@ -65,6 +65,9 @@ class PriceControllerTest {
     @MockitoBean
     IngestionService ingestion;
 
+    @MockitoBean
+    io.github.soham023.spottracker.ingest.BackfillService backfill;
+
     @Test
     void pricesAreReturnedWithDefaultWindow() throws Exception {
         PriceDto dto = new PriceDto(1L, "TURMERIC", "NCDEX", "Nizamabad", null, PriceType.FUTURES, "2026-12",

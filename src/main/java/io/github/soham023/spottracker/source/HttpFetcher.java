@@ -3,6 +3,11 @@ package io.github.soham023.spottracker.source;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.URLEncoder;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -20,6 +25,8 @@ public class HttpFetcher {
     private final HttpClient client = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(15))
             .followRedirects(HttpClient.Redirect.NORMAL)
+            // Session cookies: NCDEX's AJAX endpoints only answer a client that loaded the page first
+            .cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
             .build();
 
     public String get(String url, Duration timeout) throws IOException, InterruptedException {
@@ -42,6 +49,29 @@ public class HttpFetcher {
                 .header("User-Agent", USER_AGENT)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        if (response.statusCode() / 100 != 2) {
+            throw new IOException("POST " + redact(url) + " returned HTTP " + response.statusCode());
+        }
+        return response.body();
+    }
+
+    /** Form POST as the page's own JavaScript sends it (AJAX headers, Referer, url-encoded body). */
+    public String postForm(String url, Map<String, String> form, String referer, Duration timeout)
+            throws IOException, InterruptedException {
+        String body = form.entrySet().stream()
+                .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8) + "="
+                        + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
+                .collect(Collectors.joining("&"));
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url))
+                .timeout(timeout)
+                .header("User-Agent", USER_AGENT)
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .header("X-Requested-With", "XMLHttpRequest")
+                .header("Accept", "application/json, text/javascript, */*; q=0.01")
+                .header("Referer", referer)
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                 .build();
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         if (response.statusCode() / 100 != 2) {
