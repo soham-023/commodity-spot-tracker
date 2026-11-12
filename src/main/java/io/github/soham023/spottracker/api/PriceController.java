@@ -60,6 +60,54 @@ public class PriceController {
         return query.prices(commodity, source, market, type, range.from(), range.to(), page, size);
     }
 
+    @GetMapping("/prices/status")
+    @Operation(summary = "Row count, first/last price date, last update time and futures contract months")
+    public io.github.soham023.spottracker.api.dto.DataStatus status(
+            @RequestParam(defaultValue = "TURMERIC") @Pattern(regexp = COMMODITY_PATTERN) String commodity) {
+        return query.status(commodity);
+    }
+
+    @GetMapping(value = "/prices/export.csv", produces = "text/csv")
+    @Operation(summary = "All prices in a date range as CSV (oldest first)", description =
+            "Defaults: to = today, from = to - 90 days. Optional type (SPOT/FUTURES) and contract (yyyy-MM) filters.")
+    public org.springframework.http.ResponseEntity<String> exportCsv(
+            @RequestParam(defaultValue = "TURMERIC") @Pattern(regexp = COMMODITY_PATTERN) String commodity,
+            @RequestParam(required = false) PriceType type,
+            @RequestParam(required = false) @Pattern(regexp = "^\\d{4}-\\d{2}$") String contract,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        DateRange range = DateRange.of(from, to, LocalDate.now(clock), DEFAULT_WINDOW_DAYS);
+        StringBuilder csv = new StringBuilder(
+                "date,commodity,source,price_type,market,variety,contract_month,price,min_price,max_price,fetched_at\n");
+        for (var p : query.export(commodity, type, contract, range.from(), range.to())) {
+            csv.append(p.date()).append(',').append(p.commodity()).append(',').append(p.source()).append(',')
+                    .append(p.priceType()).append(',').append(csvCell(p.market())).append(',')
+                    .append(csvCell(p.variety())).append(',').append(nz(p.contractMonth())).append(',')
+                    .append(p.price().toPlainString()).append(',').append(plain(p.minPrice())).append(',')
+                    .append(plain(p.maxPrice())).append(',').append(p.fetchedAt()).append('\n');
+        }
+        String name = "%s-prices-%s-to-%s.csv".formatted(commodity.toLowerCase(java.util.Locale.ROOT), range.from(), range.to());
+        return org.springframework.http.ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"" + name + "\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv.toString());
+    }
+
+    private static String nz(String s) {
+        return s == null ? "" : s;
+    }
+
+    private static String plain(java.math.BigDecimal v) {
+        return v == null ? "" : v.toPlainString();
+    }
+
+    private static String csvCell(String s) {
+        if (s == null) {
+            return "";
+        }
+        return s.contains(",") || s.contains("\"") ? "\"" + s.replace("\"", "\"\"") + "\"" : s;
+    }
+
     @GetMapping("/spreads")
     @Operation(summary = "Basis, delivery-grade and mandi spreads", description =
             "BASIS = near-month futures − NCDEX spot (basis quality); DELIVERY = near-month futures − another NCDEX "

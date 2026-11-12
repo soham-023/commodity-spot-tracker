@@ -28,6 +28,25 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class PriceQueryService {
 
+    public io.github.soham023.spottracker.api.dto.DataStatus status(String commodity) {
+        String c = commodity.toUpperCase(java.util.Locale.ROOT);
+        return new io.github.soham023.spottracker.api.dto.DataStatus(c, prices.countByCommodity(c),
+                prices.findEarliestDate(c).orElse(null), prices.findLatestDate(c).orElse(null),
+                prices.findLastFetchedAt(c).orElse(null), prices.findContractMonths(c));
+    }
+
+    /** Every price in [from, to], oldest first, optionally narrowed to one type / contract month. */
+    public List<PriceDto> export(String commodity, PriceType type, String contractMonth, LocalDate from, LocalDate to) {
+        var sort = Sort.by(Sort.Order.asc("priceDate"), Sort.Order.asc("priceType"), Sort.Order.asc("source"),
+                Sort.Order.asc("market"), Sort.Order.asc("variety"), Sort.Order.asc("contractMonth"));
+        return prices.findByCommodityAndPriceDateBetween(commodity.toUpperCase(java.util.Locale.ROOT), from, to, sort)
+                .stream()
+                .filter(p -> type == null || p.getPriceType() == type)
+                .filter(p -> contractMonth == null || contractMonth.equals(p.getContractMonth()))
+                .map(PriceDto::from)
+                .toList();
+    }
+
     private final PriceSnapshotRepository prices;
     private final AlertRepository alerts;
     private final SpreadService spreads;

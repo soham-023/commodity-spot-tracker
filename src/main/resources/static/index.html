@@ -16,12 +16,19 @@
     <p class="sub">NCDEX spot vs futures vs APMC mandis · ₹ per quintal</p>
   </div>
   <div class="controls">
-    <label>Window
-      <select id="window">
+    <label>From <input type="date" id="from"></label>
+    <label>To <input type="date" id="to"></label>
+    <label>Range
+      <select id="preset">
+        <option value="all" selected>All data</option>
         <option value="30">30 days</option>
-        <option value="90" selected>90 days</option>
-        <option value="180">180 days</option>
+        <option value="90">90 days</option>
+        <option value="365">1 year</option>
+        <option value="custom">Custom</option>
       </select>
+    </label>
+    <label>Contract
+      <select id="contract"><option value="near" selected>Near month</option></select>
     </label>
     <a href="https://www.ncdex.com/products/TMCFGRNZM" class="link" id="productLink" target="_blank" rel="noopener">NCDEX product page</a>
     <a href="swagger-ui.html" class="link">API docs</a>
@@ -29,6 +36,13 @@
 </header>
 
 <main>
+  <p class="stamp" id="stamp"></p>
+  <section class="panel empty" id="empty" hidden>
+    <h2>No prices yet</h2>
+    <p>The database is empty. Pull NCDEX futures history and the last 30 days of spot polls now, then run the live sources.</p>
+    <button id="ingestBtn" type="button">Ingest from NCDEX</button>
+    <p class="meta" id="ingestMsg"></p>
+  </section>
   <section class="cards" id="cards">
     <div class="card"><h3>NCDEX spot</h3><p class="value" id="spot">–</p><p class="meta" id="spotMeta"></p></div>
     <div class="card"><h3>Near-month futures</h3><p class="value" id="fut">–</p><p class="meta" id="futMeta"></p></div>
@@ -37,7 +51,7 @@
   </section>
 
   <section class="panel">
-    <h2>Price history</h2>
+    <h2>Spot vs futures</h2>
     <div class="chart"><canvas id="priceChart"></canvas></div>
   </section>
 
@@ -78,6 +92,20 @@
       </table>
       <p class="meta" id="pdBasis"></p>
     </div>
+  </section>
+  <section class="panel">
+    <h2>All prices <span class="muted" id="tableCount"></span>
+      <a class="link small" id="exportLink" href="api/v1/prices/export.csv">Download CSV</a></h2>
+    <div class="tablebar">
+      <label>Show
+        <select id="typeFilter"><option value="">Spot + futures</option><option value="SPOT">Spot</option><option value="FUTURES">Futures</option></select>
+      </label>
+      <button type="button" id="prevPage">‹ Prev</button><span id="pageInfo" class="muted"></span><button type="button" id="nextPage">Next ›</button>
+    </div>
+    <table id="priceTable">
+      <thead><tr><th>Date</th><th>Type</th><th>Source</th><th>Centre</th><th>Variety / contract</th><th class="r">Price ₹/qtl</th><th class="r">Low</th><th class="r">High</th></tr></thead>
+      <tbody><tr><td colspan="8" class="muted">Loading…</td></tr></tbody>
+    </table>
   </section>
   <p class="foot" id="foot"></p>
 </main>
