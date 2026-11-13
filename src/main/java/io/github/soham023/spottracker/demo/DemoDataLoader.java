@@ -18,6 +18,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import java.io.BufferedReader;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -42,15 +43,18 @@ import java.util.List;
 public class DemoDataLoader implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoDataLoader.class);
+    
 
     private final SnapshotWriter writer;
     private final ContractDataWriter contracts;
     private final AlertService alerts;
+    
     private final Clock clock;
 
     public DemoDataLoader(SnapshotWriter writer, ContractDataWriter contracts, AlertService alerts, Clock clock) {
         this.writer = writer;
         this.contracts = contracts;
+        
         this.alerts = alerts;
         this.clock = clock;
     }
@@ -60,6 +64,7 @@ public class DemoDataLoader implements ApplicationRunner {
         Instant now = clock.instant();
         var product = new NcdexProductParser().parse(read("demo/ncdex-product-turmeric.html"), "TMCFGRNZM");
         var p = contracts.upsert(product, LocalDate.now(clock), now);
+        
 
         List<PriceSnapshot> history = readCsv("demo/turmeric-demo-history.csv", now);
         var h = writer.upsert(history);
