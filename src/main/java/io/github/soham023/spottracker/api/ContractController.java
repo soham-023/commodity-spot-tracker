@@ -84,7 +84,8 @@ public class ContractController {
                             m == null ? null : ContractsResponse.Margin.from(m), change);
                 })
                 .toList();
-        return new ContractsResponse(s, productUrl(s), today, calendar.rollDays(), near, marginDate, rows);
+        ContractsResponse.LastTraded ltp = contracts.latestQuote(s).map(ContractsResponse.LastTraded::from).orElse(null);
+        return new ContractsResponse(s, productUrl(s), today, calendar.rollDays(), near, marginDate, rows, ltp);
     }
 
     @GetMapping("/premium-discount")

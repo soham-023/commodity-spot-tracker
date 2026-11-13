@@ -84,7 +84,9 @@ class DemoProfileIntegrationTest {
                 .andExpect(jsonPath("$.marginDate").value("2026-11-11"))
                 .andExpect(jsonPath("$.contracts[?(@.expiry == '2026-12-18')].margin.total").value(17.79))
                 .andExpect(jsonPath("$.contracts[?(@.expiry == '2026-12-18')].margin.additionalLong").value(10.0))
-                .andExpect(jsonPath("$.contracts[?(@.expiry == '2027-05-20')].margin.total").value(15.2));
+                .andExpect(jsonPath("$.contracts[?(@.expiry == '2027-05-20')].margin.total").value(15.2))
+                .andExpect(jsonPath("$.lastTraded.price").value(28746.0))
+                .andExpect(jsonPath("$.lastTraded.change").value(332.0));
         mvc.perform(get("/api/v1/contracts").param("symbol", "TM;--")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/contracts").param("symbol", "JEERAUNJHA")).andExpect(status().isNotFound());
     }

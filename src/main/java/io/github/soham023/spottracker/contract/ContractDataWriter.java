@@ -10,7 +10,7 @@ import java.time.LocalDate;
 
 /**
  * Upserts one scrape of the product page by natural key (expiry; margin date + file + expiry;
- * expiry + location + as-of date), so re-running the scrape on the same day is idempotent.
+ * expiry + location + as-of date; LTP per market date), so re-running the scrape on the same day is idempotent.
  */
 @Service
 public class ContractDataWriter {
@@ -18,16 +18,19 @@ public class ContractDataWriter {
     private final ContractExpiryRepository expiries;
     private final DailyMarginRepository margins;
     private final PremiumDiscountRepository matrix;
+    private final ProductQuoteRepository quotes;
 
     public ContractDataWriter(ContractExpiryRepository expiries, DailyMarginRepository margins,
-                              PremiumDiscountRepository matrix) {
+                              PremiumDiscountRepository matrix, ProductQuoteRepository quotes) {
         this.expiries = expiries;
         this.margins = margins;
         this.matrix = matrix;
+        this.quotes = quotes;
     }
 
     /**
-     * @param today     market date of the scrape; also the matrix as-of date when the page carries no margin date
+     * @param today     market date of the scrape (and of its LTP); also the matrix as-of date when the page
+     *                  carries no margin date
      */
     @Transactional
     public SnapshotWriter.Counts upsert(NcdexProductPage page, LocalDate today, Instant fetchedAt) {
@@ -65,6 +68,17 @@ public class ContractDataWriter {
                 updated++;
             } else {
                 matrix.save(fresh);
+                inserted++;
+            }
+        }
+        if (page.lastTradedPrice() != null) {
+            ProductQuote fresh = new ProductQuote(symbol, today, page.lastTradedPrice(), page.change(), fetchedAt);
+            var existing = quotes.findBySymbolAndQuoteDate(symbol, today);
+            if (existing.isPresent()) {
+                existing.get().refreshFrom(fresh);
+                updated++;
+            } else {
+                quotes.save(fresh);
                 inserted++;
             }
         }

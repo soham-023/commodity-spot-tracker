@@ -8,7 +8,7 @@ import java.util.List;
  * What the NCDEX product page ({@code /products/<symbol>}) publishes about one futures contract.
  *
  * @param symbol           futures symbol, e.g. TMCFGRNZM
- * @param lastTradedPrice  "LTP" in the page header (contract not stated by NCDEX; informational only)
+ * @param lastTradedPrice  "LTP" in the page header (contract not stated by NCDEX); stored as a {@code ProductQuote}
  * @param change           change next to the LTP
  * @param expiries         every active expiry the page lists, ascending
  * @param margins          "Daily margin information", one row per expiry

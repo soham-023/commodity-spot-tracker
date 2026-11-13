@@ -49,6 +49,8 @@ class ContractDataWriterTest {
     @Autowired
     PremiumDiscountRepository matrix;
     @Autowired
+    ProductQuoteRepository quotes;
+    @Autowired
     ContractService service;
 
     private final NcdexProductPage page = new NcdexProductParser()
@@ -62,8 +64,8 @@ class ContractDataWriterTest {
         var c1 = writer.upsert(page, TODAY, first);
         var c2 = writer.upsert(withDecemberTotalMargin(page, "27.79"), TODAY, second);
 
-        assertThat(c1).isEqualTo(new SnapshotWriter.Counts(3 + 3 + 16, 0));
-        assertThat(c2).isEqualTo(new SnapshotWriter.Counts(0, 3 + 16)); // expiries already seen today are untouched
+        assertThat(c1).isEqualTo(new SnapshotWriter.Counts(3 + 3 + 16 + 1, 0));
+        assertThat(c2).isEqualTo(new SnapshotWriter.Counts(0, 3 + 16 + 1)); // expiries already seen today are untouched
         assertThat(expiries.count()).isEqualTo(3);
         assertThat(margins.count()).isEqualTo(3);
         assertThat(matrix.count()).isEqualTo(16);
@@ -87,6 +89,39 @@ class ContractDataWriterTest {
                         org.assertj.core.groups.Tuple.tuple(DEC, TODAY.plusDays(1)),
                         org.assertj.core.groups.Tuple.tuple(LocalDate.of(2027, 4, 16), TODAY),
                         org.assertj.core.groups.Tuple.tuple(LocalDate.of(2027, 5, 20), TODAY));
+    }
+
+    @Test
+    void lastTradedPriceIsStoredPerMarketDateAndLatestWins() {
+        Instant morning = Instant.parse("2026-11-11T04:00:00Z");
+        Instant evening = Instant.parse("2026-11-11T13:00:00Z");
+
+        writer.upsert(page, TODAY, morning);
+        ProductQuote stored = quotes.findBySymbolAndQuoteDate("TMCFGRNZM", TODAY).orElseThrow();
+        assertThat(stored.getLastTradedPrice()).isEqualByComparingTo("28746");
+        assertThat(stored.getChange()).isEqualByComparingTo("332");
+
+        writer.upsert(withLtp(page, "28800", "-12"), TODAY, evening);
+        writer.upsert(withLtp(page, "29010", "210"), TODAY.plusDays(1), evening.plusSeconds(86_400));
+
+        assertThat(quotes.count()).isEqualTo(2);
+        assertThat(quotes.findBySymbolAndQuoteDate("TMCFGRNZM", TODAY).orElseThrow())
+                .satisfies(q -> {
+                    assertThat(q.getLastTradedPrice()).isEqualByComparingTo("28800");
+                    assertThat(q.getChange()).isEqualByComparingTo("-12");
+                    assertThat(q.getFetchedAt()).isEqualTo(evening);
+                });
+        assertThat(service.latestQuote("TMCFGRNZM")).hasValueSatisfying(q -> {
+            assertThat(q.getQuoteDate()).isEqualTo(TODAY.plusDays(1));
+            assertThat(q.getLastTradedPrice()).isEqualByComparingTo("29010");
+        });
+    }
+
+    @Test
+    void pageWithoutLtpStoresNoQuote() {
+        writer.upsert(withLtp(page, null, null), TODAY, Instant.parse("2026-11-11T04:00:00Z"));
+        assertThat(quotes.count()).isZero();
+        assertThat(service.latestQuote("TMCFGRNZM")).isEmpty();
     }
 
     @Test
@@ -120,6 +155,11 @@ class ContractDataWriterTest {
                         m.expiry(), m.initialMargin(), m.extremeMargin(), m.additionalPem(), m.totalMargin(),
                         m.additionalLong(), m.additionalShort(), m.specialLong(), m.specialShort())).toList(),
                 p.premiumDiscounts());
+    }
+
+    private static NcdexProductPage withLtp(NcdexProductPage p, String ltp, String change) {
+        return new NcdexProductPage(p.symbol(), ltp == null ? null : new BigDecimal(ltp),
+                change == null ? null : new BigDecimal(change), p.expiries(), p.margins(), p.premiumDiscounts());
     }
 
     static NcdexProductPage withDecemberTotalMargin(NcdexProductPage p, String tm) {

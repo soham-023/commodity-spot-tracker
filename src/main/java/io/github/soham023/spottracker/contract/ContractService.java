@@ -15,14 +15,21 @@ public class ContractService {
     private final ContractExpiryRepository expiries;
     private final DailyMarginRepository margins;
     private final PremiumDiscountRepository matrix;
+    private final ProductQuoteRepository quotes;
     private final ContractProperties props;
 
     public ContractService(ContractExpiryRepository expiries, DailyMarginRepository margins,
-                           PremiumDiscountRepository matrix, ContractProperties props) {
+                           PremiumDiscountRepository matrix, ProductQuoteRepository quotes, ContractProperties props) {
         this.expiries = expiries;
         this.margins = margins;
         this.matrix = matrix;
+        this.quotes = quotes;
         this.props = props;
+    }
+
+    /** The most recent product-page LTP stored for {@code symbol}. */
+    public Optional<ProductQuote> latestQuote(String symbol) {
+        return quotes.findFirstBySymbolOrderByQuoteDateDesc(symbol);
     }
 
     public List<ContractExpiry> expiries(String symbol) {

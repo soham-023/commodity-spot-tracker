@@ -1,8 +1,10 @@
 package io.github.soham023.spottracker.api.dto;
 
 import io.github.soham023.spottracker.contract.DailyMargin;
+import io.github.soham023.spottracker.contract.ProductQuote;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -11,9 +13,22 @@ import java.util.List;
  *
  * @param nearMonth  expiry the basis is measured against today (first expiry outside the roll window)
  * @param marginDate latest margin date stored
+ * @param lastTraded LTP from the product page header (expiry not stated by NCDEX); null before the first scrape
  */
 public record ContractsResponse(String symbol, String productUrl, LocalDate today, int rollDays, LocalDate nearMonth,
-                                LocalDate marginDate, List<Contract> contracts) {
+                                LocalDate marginDate, List<Contract> contracts, LastTraded lastTraded) {
+
+    /**
+     * @param price  last traded price, ₹/quintal
+     * @param change change shown next to it
+     * @param date   market date of the scrape
+     */
+    public record LastTraded(BigDecimal price, BigDecimal change, LocalDate date, Instant fetchedAt) {
+
+        public static LastTraded from(ProductQuote q) {
+            return new LastTraded(q.getLastTradedPrice(), q.getChange(), q.getQuoteDate(), q.getFetchedAt());
+        }
+    }
 
     /**
      * @param active            still listed on the product page at the last scrape

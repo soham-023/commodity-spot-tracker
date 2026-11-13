@@ -17,6 +17,9 @@
   last-updated stamp, and an empty state with an *Ingest from NCDEX* button.
 
 ### Fixed
+- The LTP and change in the NCDEX product page header were parsed and then thrown away. They are now stored
+  per market date in `product_quote` (Flyway `V4`, last scrape of the day wins) and returned as `lastTraded`
+  by `GET /api/v1/contracts`.
 - The default profile showed an empty dashboard until the first scheduled run.
 - `DemoProfileIntegrationTest` used the system clock, so its near-month assertions would break after the
   18 Dec 2026 expiry; it now runs on a fixed `Clock`.
