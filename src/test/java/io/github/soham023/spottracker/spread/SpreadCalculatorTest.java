@@ -1,6 +1,8 @@
 package io.github.soham023.spottracker.spread;
 
 import io.github.soham023.spottracker.contract.ContractCalendar;
+import io.github.soham023.spottracker.contract.DeliveryMatrix;
+import io.github.soham023.spottracker.contract.DeliveryMatrixHistory;
 import io.github.soham023.spottracker.contract.DeliveryMatrixTest;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import org.junit.jupiter.api.Test;
@@ -9,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -177,6 +180,40 @@ class SpreadCalculatorTest {
         assertThat(rajapore.adjustedSpreadPct()).isEqualByComparingTo("-11.06");
         assertThat(rajapore.flags()).containsExactly(SpreadFlag.WIDE_SPREAD);
         assertThat(rajapore.priceMovePct()).isNull();
+    }
+
+    @Test
+    void historyIsAdjustedWithTheMatrixInForceThatDayNotTodays() {
+        // NCDEX widened the Unpolished discount from -4% to -8% on D2
+        LocalDate dec = LocalDate.of(2026, 12, 18);
+        DeliveryMatrix before = new DeliveryMatrix(List.of(
+                new DeliveryMatrix.Entry(dec, "Farmer polished fingers Nizamabad", "Nizamabad", BigDecimal.ZERO, true),
+                new DeliveryMatrix.Entry(dec, "Unpolished Fingers", "Nizamabad", new BigDecimal("-4"), false)));
+        DeliveryMatrix after = new DeliveryMatrix(List.of(
+                new DeliveryMatrix.Entry(dec, "Farmer polished fingers Nizamabad", "Nizamabad", BigDecimal.ZERO, true),
+                new DeliveryMatrix.Entry(dec, "Unpolished Fingers", "Nizamabad", new BigDecimal("-8"), false)));
+        List<PriceSnapshot> data = List.of(
+                spot("Nizamabad", "Farmer Polished", "24000", D1),
+                spot("Nizamabad", "Unpolished", "23040", D1),
+                futures("2026-12", "24500", D1),
+                spot("Nizamabad", "Farmer Polished", "24000", D2),
+                spot("Nizamabad", "Unpolished", "23040", D2),
+                futures("2026-12", "24500", D2));
+
+        List<SpreadPoint> delivery = calc.compute("TURMERIC", data, CALENDAR,
+                        DeliveryMatrixHistory.of(Map.of(D1, before, D2, after))).stream()
+                .filter(p -> p.kind() == SpreadKind.DELIVERY).toList();
+
+        assertThat(delivery).extracting(SpreadPoint::date, SpreadPoint::adjustmentPct).satisfiesExactly(
+                t -> assertThat(t.toList()).containsExactly(D1, new BigDecimal("-4")),
+                t -> assertThat(t.toList()).containsExactly(D2, new BigDecimal("-8")));
+        assertThat(delivery.get(0).adjustedSpread()).isEqualByComparingTo("500.00");   // 23040 / 0.96 = 24000
+        assertThat(delivery.get(1).adjustedSpread()).isEqualByComparingTo("-543.48");  // 23040 / 0.92 = 25043.48
+
+        // The old behaviour, today's matrix applied to all history, would have used -8% on D1 as well
+        List<SpreadPoint> withTodays = calc.compute("TURMERIC", data, CALENDAR, after).stream()
+                .filter(p -> p.kind() == SpreadKind.DELIVERY && p.date().equals(D1)).toList();
+        assertThat(withTodays.getFirst().adjustmentPct()).isEqualByComparingTo("-8");
     }
 
     @Test

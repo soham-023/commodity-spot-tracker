@@ -5,6 +5,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.Optional;
 
 /** Read side of the scraped contract data. */
@@ -49,11 +52,22 @@ public class ContractService {
                 .orElse(List.of());
     }
 
+    /** The latest published matrix. For spreads over a date range use {@link #deliveryMatrixHistory}. */
     public DeliveryMatrix deliveryMatrix(String symbol) {
-        return new DeliveryMatrix(latestMatrixRows(symbol).stream()
-                .map(p -> new DeliveryMatrix.Entry(p.getExpiryDate(), p.getQuality(), p.getCentre(), p.getPremiumPct(),
-                        p.isBasis()))
-                .toList());
+        return new DeliveryMatrix(latestMatrixRows(symbol).stream().map(ContractService::entry).toList());
+    }
+
+    /** Every matrix ever scraped for {@code symbol}, by publication date, so history is adjusted as of its own date. */
+    public DeliveryMatrixHistory deliveryMatrixHistory(String symbol) {
+        Map<LocalDate, DeliveryMatrix> byAsOf = matrix.findBySymbolOrderByAsOfDateAscExpiryDateAscIdAsc(symbol).stream()
+                .collect(Collectors.groupingBy(PremiumDiscount::getAsOfDate, TreeMap::new,
+                        Collectors.collectingAndThen(Collectors.mapping(ContractService::entry, Collectors.toList()),
+                                DeliveryMatrix::new)));
+        return DeliveryMatrixHistory.of(byAsOf);
+    }
+
+    private static DeliveryMatrix.Entry entry(PremiumDiscount p) {
+        return new DeliveryMatrix.Entry(p.getExpiryDate(), p.getQuality(), p.getCentre(), p.getPremiumPct(), p.isBasis());
     }
 
     /** Margin rows from the last {@code days} margin dates up to the latest one, newest first. */

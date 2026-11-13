@@ -149,6 +149,29 @@ class ContractDataWriterTest {
         assertThat(service.deliveryMatrix("TMCFGRNZM").forGrade(DEC, "Sangli", "Rajapore")).isPresent();
     }
 
+    @Test
+    void matrixHistoryKeepsEachPublicationDate() {
+        writer.upsert(page, TODAY, Instant.parse("2026-11-11T04:00:00Z"));
+        writer.upsert(nextDay(withRajaporePremium(page, "5")), TODAY.plusDays(1), Instant.parse("2026-11-12T04:00:00Z"));
+
+        DeliveryMatrixHistory history = service.deliveryMatrixHistory("TMCFGRNZM");
+
+        assertThat(history.on(TODAY).forGrade(DEC, "Sangli", "Rajapore"))
+                .map(e -> e.premiumPct().intValue()).contains(4);
+        assertThat(history.on(TODAY.plusDays(1)).forGrade(DEC, "Sangli", "Rajapore"))
+                .map(e -> e.premiumPct().intValue()).contains(5);
+        assertThat(history.on(LocalDate.of(2025, 1, 1)).forGrade(DEC, "Sangli", "Rajapore"))
+                .map(e -> e.premiumPct().intValue()).contains(4);
+    }
+
+    private static NcdexProductPage withRajaporePremium(NcdexProductPage p, String pct) {
+        return new NcdexProductPage(p.symbol(), p.lastTradedPrice(), p.change(), p.expiries(), p.margins(),
+                p.premiumDiscounts().stream().map(d -> d.quality().startsWith("Rajapore")
+                        ? new NcdexProductPage.PremiumDiscount(d.expiry(), d.basisLocation(), d.location(), d.quality(),
+                        d.centre(), new BigDecimal(pct), d.basis())
+                        : d).toList());
+    }
+
     private static NcdexProductPage nextDay(NcdexProductPage p) {
         return new NcdexProductPage(p.symbol(), p.lastTradedPrice(), p.change(), p.expiries(),
                 p.margins().stream().map(m -> new NcdexProductPage.Margin(m.fileType(), m.marginDate().plusDays(1),

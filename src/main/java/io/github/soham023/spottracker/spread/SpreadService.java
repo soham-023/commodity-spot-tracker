@@ -33,7 +33,7 @@ public class SpreadService {
     public List<SpreadPoint> spreads(String commodity, LocalDate from, LocalDate to) {
         LocalDate lookback = from.minusDays(Math.max(props.maxSpotAgeDays(), 7));
         var snapshots = repository.findByCommodityAndPriceDateBetweenOrderByPriceDateAsc(commodity.toUpperCase(), lookback, to);
-        return calculator.compute(commodity, snapshots, calendar(), contracts.deliveryMatrix(futuresSymbol)).stream()
+        return calculator.compute(commodity, snapshots, calendar(), contracts.deliveryMatrixHistory(futuresSymbol)).stream()
                 .filter(p -> !p.date().isBefore(from))
                 .toList();
     }

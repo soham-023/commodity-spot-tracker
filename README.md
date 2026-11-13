@@ -109,7 +109,7 @@ Example from the recorded pages: Rajapore at Sangli polled ₹28,650 → ₹27,5
 
 Rules worth knowing:
 
-- The matrix of the **near-month expiry** is used (an expiry the matrix doesn't list falls back to the nearest later one). The latest published matrix is applied to the whole history window.
+- The matrix of the **near-month expiry** is used (an expiry the matrix doesn't list falls back to the nearest later one). Each day is adjusted with the matrix NCDEX had published by that day (every scrape is kept by as-of date); days before the first stored matrix use the earliest one.
 - NCDEX spot grades match by quality and centre. Mandi averages match by variety (Agmarknet's "Rajapuri" = Rajapore) or, failing that, by a centre with a single deliverable quality (Sangli → Rajapore, Basmat → Salem). Erode (two qualities) and Nizamabad mandi "Finger" stay unadjusted, and Hingoli/Warangal aren't delivery centres; those points keep `adjustedSpread = null` and are flagged on the raw spread.
 - Every point exposes both: `spread`/`spreadPct` (raw) and `adjustmentPct`, `adjustedSpread`, `adjustedSpreadPct`.
 

@@ -17,6 +17,9 @@
   last-updated stamp, and an empty state with an *Ingest from NCDEX* button.
 
 ### Fixed
+- Delivery-adjusted spreads applied today's premium/discount matrix to the whole history window, so a matrix
+  revision silently rewrote past adjusted spreads. Each day now uses the matrix published on or before it
+  (`DeliveryMatrixHistory`); days before the first stored matrix fall back to the earliest one.
 - The LTP and change in the NCDEX product page header were parsed and then thrown away. They are now stored
   per market date in `product_quote` (Flyway `V4`, last scrape of the day wins) and returned as `lastTraded`
   by `GET /api/v1/contracts`.

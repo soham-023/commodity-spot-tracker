@@ -16,4 +16,6 @@ public interface PremiumDiscountRepository extends JpaRepository<PremiumDiscount
     Optional<LocalDate> findLatestAsOf(String symbol);
 
     List<PremiumDiscount> findBySymbolAndAsOfDateOrderByExpiryDateAscIdAsc(String symbol, LocalDate asOfDate);
+
+    List<PremiumDiscount> findBySymbolOrderByAsOfDateAscExpiryDateAscIdAsc(String symbol);
 }

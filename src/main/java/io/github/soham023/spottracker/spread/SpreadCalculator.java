@@ -2,6 +2,7 @@ package io.github.soham023.spottracker.spread;
 
 import io.github.soham023.spottracker.contract.ContractCalendar;
 import io.github.soham023.spottracker.contract.DeliveryMatrix;
+import io.github.soham023.spottracker.contract.DeliveryMatrixHistory;
 import io.github.soham023.spottracker.domain.PriceSnapshot;
 import io.github.soham023.spottracker.domain.PriceType;
 import io.github.soham023.spottracker.source.agmarknet.DataGovMandiSource;
@@ -32,7 +33,8 @@ import java.util.stream.Collectors;
  *   Rajapore at Sangli), only for grades the premium/discount matrix prices.</li>
  *   <li><b>Mandi spread</b>: average modal price across varieties at a mandi − NCDEX benchmark spot.</li>
  * </ul>
- * Every point keeps its raw spread; when the {@link DeliveryMatrix} prices the grade or centre, the point also
+ * Every point keeps its raw spread; when the {@link DeliveryMatrix} in force on that day (see
+ * {@link DeliveryMatrixHistory}) prices the grade or centre, the point also
  * carries a delivery-adjusted spread (grade converted to basis-quality equivalent), and the WIDE_SPREAD flag
  * is judged on that, so a Rajapore premium or an unpolished discount the exchange already allows for does
  * not raise an alert. NCDEX spot polls can lag several days, so each day uses the latest spot poll on or
@@ -56,8 +58,15 @@ public class SpreadCalculator {
         return compute(commodity, snapshots, calendar, DeliveryMatrix.empty());
     }
 
+    /** Applies one matrix to every date. */
     public List<SpreadPoint> compute(String commodity, List<PriceSnapshot> snapshots, ContractCalendar calendar,
                                      DeliveryMatrix matrix) {
+        return compute(commodity, snapshots, calendar, DeliveryMatrixHistory.constant(matrix));
+    }
+
+    /** Adjusts each date with the premium/discount matrix NCDEX had published by that date. */
+    public List<SpreadPoint> compute(String commodity, List<PriceSnapshot> snapshots, ContractCalendar calendar,
+                                     DeliveryMatrixHistory matrices) {
         TreeMap<LocalDate, BigDecimal> spot = new TreeMap<>();
         Map<Grade, TreeMap<LocalDate, BigDecimal>> grades = new TreeMap<>();
         Map<LocalDate, List<PriceSnapshot>> futuresByDate = new TreeMap<>();
@@ -89,6 +98,7 @@ public class SpreadCalculator {
         Map<String, BigDecimal> previous = new HashMap<>();
         futuresByDate.forEach((date, quotes) -> calendar.pickNearMonth(quotes, PriceSnapshot::getContractMonth, date)
                 .ifPresent(f -> {
+                    DeliveryMatrix matrix = matrices.on(date);
                     LocalDate expiry = calendar.expiryOf(f.getContractMonth()).orElse(null);
                     BigDecimal basisPremium = matrix.forGrade(expiry, props.benchmarkMarket(), props.benchmarkVariety())
                             .map(DeliveryMatrix.Entry::premiumPct).orElse(null);
@@ -102,6 +112,7 @@ public class SpreadCalculator {
         mandi.forEach((market, byDate) -> byDate.forEach((date, rows) -> {
             BigDecimal avg = rows.stream().map(PriceSnapshot::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add)
                     .divide(BigDecimal.valueOf(rows.size()), 2, RoundingMode.HALF_UP);
+            DeliveryMatrix matrix = matrices.on(date);
             LocalDate expiry = calendar.nearMonth(date).orElse(null);
             Set<String> varieties = rows.stream().map(PriceSnapshot::getVariety).collect(Collectors.toSet());
             BigDecimal premium = varieties.size() == 1
