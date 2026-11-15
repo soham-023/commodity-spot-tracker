@@ -11,9 +11,11 @@ import java.util.Optional;
 
 public interface PriceSnapshotRepository extends JpaRepository<PriceSnapshot, Long>,
         JpaSpecificationExecutor<PriceSnapshot> {
+    
 
     Optional<PriceSnapshot> findBySourceAndMarketAndVarietyAndPriceTypeAndContractMonthAndPriceDate(
             String source, String market, String variety, PriceType priceType, String contractMonth, LocalDate priceDate);
+    
 
     List<PriceSnapshot> findByCommodityAndPriceDateBetweenOrderByPriceDateAsc(
             String commodity, LocalDate from, LocalDate to);
@@ -23,6 +25,7 @@ public interface PriceSnapshotRepository extends JpaRepository<PriceSnapshot, Lo
 
     @Query("select min(p.priceDate) from PriceSnapshot p where p.commodity = :commodity")
     Optional<LocalDate> findEarliestDate(String commodity);
+    
 
     @Query("select max(p.fetchedAt) from PriceSnapshot p where p.commodity = :commodity")
     Optional<Instant> findLastFetchedAt(String commodity);
@@ -30,6 +33,7 @@ public interface PriceSnapshotRepository extends JpaRepository<PriceSnapshot, Lo
     long countByCommodity(String commodity);
 
     @Query("select distinct p.contractMonth from PriceSnapshot p where p.commodity = :commodity "
+           
             + "and p.priceType = io.github.soham023.spottracker.domain.PriceType.FUTURES order by p.contractMonth")
     List<String> findContractMonths(String commodity);
 
