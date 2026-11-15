@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
@@ -42,6 +43,7 @@ public class GlobalExceptionHandler {
                         .map(err -> r.getMethodParameter().getParameterName() + ": " + err.getDefaultMessage()))
                 .sorted()
                 .collect(Collectors.joining("; "));
+        
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", detail);
     }
 
@@ -67,7 +69,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
+    
     ProblemDetail noResource(NoResourceFoundException e) {
+        
         return problem(HttpStatus.NOT_FOUND, "Not found", "No endpoint " + e.getResourcePath());
     }
 
@@ -79,12 +83,14 @@ public class GlobalExceptionHandler {
 
     private static ProblemDetail problem(HttpStatus status, String title, String detail) {
         ProblemDetail pd = ProblemDetail.forStatusAndDetail(status, detail);
+        
         pd.setTitle(title);
         return pd;
     }
 
     private static String leaf(String path) {
         int i = path.lastIndexOf('.');
+        
         return i < 0 ? path : path.substring(i + 1);
     }
 }
