@@ -15,18 +15,22 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.stream.Collectors;
 
+
 /** Maps errors to RFC 9457 problem details with honest status codes. */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    
 
     @ExceptionHandler(ConstraintViolationException.class)
     ProblemDetail constraint(ConstraintViolationException e) {
         String detail = e.getConstraintViolations().stream()
                 .map(v -> leaf(v.getPropertyPath().toString()) + ": " + v.getMessage())
                 .sorted()
+            
                 .collect(Collectors.joining("; "));
+        
         return problem(HttpStatus.BAD_REQUEST, "Invalid request", detail);
     }
 
@@ -34,6 +38,7 @@ public class GlobalExceptionHandler {
     ProblemDetail methodValidation(HandlerMethodValidationException e) {
         String detail = e.getParameterValidationResults().stream()
                 .flatMap(r -> r.getResolvableErrors().stream()
+                         
                         .map(err -> r.getMethodParameter().getParameterName() + ": " + err.getDefaultMessage()))
                 .sorted()
                 .collect(Collectors.joining("; "));
