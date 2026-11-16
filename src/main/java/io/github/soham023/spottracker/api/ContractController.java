@@ -70,6 +70,7 @@ public class ContractController {
         LocalDate today = LocalDate.now(clock);
         ContractCalendar calendar = contracts.calendar(s);
         LocalDate near = calendar.nearMonth(today).orElse(null);
+        
         List<DailyMargin> recent = contracts.recentMargins(s, 10);
         LocalDate marginDate = recent.isEmpty() ? null : recent.getFirst().getMarginDate();
         
@@ -85,6 +86,7 @@ public class ContractController {
                 .map(e -> {
                     DailyMargin m = latestByExpiry.get(e.getExpiryDate());
                     BigDecimal change = MarginChange.latest(recent, e.getExpiryDate()).map(MarginChange::change)
+                        
                         
                             .orElse(null);
                     return new ContractsResponse.Contract(e.getExpiryDate(), ContractCalendar.month(e.getExpiryDate()),
@@ -104,6 +106,7 @@ public class ContractController {
     @Operation(summary = "NCDEX premium/discount matrix by delivery location", description =
             "Premium (+) or discount (−) in % over the contract's basis quality, as last published on the NCDEX "
                     + "product page. A spot quote of a grade divided by 'divisor' is its basis-quality equivalent.")
+    
     public PremiumDiscountResponse premiumDiscount(
             @RequestParam(defaultValue = "TMCFGRNZM") @Pattern(regexp = SYMBOL_PATTERN) String symbol,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate expiry) {
@@ -115,10 +118,12 @@ public class ContractController {
             throw new NotFoundException(expiry == null
                     ? "No premium/discount matrix recorded for " + s
                     : "No premium/discount matrix recorded for " + s + " expiry " + expiry);
+            
         }
         String basis = rows.stream().filter(PremiumDiscount::isBasis).map(PremiumDiscount::getLocation).findFirst()
                 .orElse(rows.getFirst().getBasisLocation());
         return new PremiumDiscountResponse(s, rows.getFirst().getAsOfDate(), basis, productUrl(s), rows.stream()
+                                           
                 .map(p -> new PremiumDiscountResponse.Row(p.getExpiryDate(), p.getLocation(), p.getQuality(),
                         p.getCentre(), p.getPremiumPct(), p.isBasis(),
                         BigDecimal.ONE.add(p.getPremiumPct().divide(HUNDRED, 4, RoundingMode.HALF_UP))))
