@@ -55,6 +55,7 @@ public class Alert {
     private String deliveredTo = "";
 
     @Column(name = "created_at", nullable = false)
+    
     private Instant createdAt;
 
     protected Alert() {
@@ -62,6 +63,7 @@ public class Alert {
 
     public Alert(String commodity, LocalDate alertDate, AlertKind kind, String label, AlertFlag flag,
                  BigDecimal spreadPct, String message, Instant createdAt) {
+        
         this.commodity = commodity;
         this.alertDate = alertDate;
         
@@ -69,6 +71,7 @@ public class Alert {
         this.label = label;
         this.flag = flag;
         this.spreadPct = spreadPct;
+        
         this.message = message;
         this.createdAt = createdAt;
         this.dedupeKey = dedupeKey(commodity, alertDate, kind, label, flag);
@@ -77,6 +80,7 @@ public class Alert {
     public static String dedupeKey(String commodity, LocalDate date, AlertKind kind, String label, AlertFlag flag) {
         
         return String.join("|", commodity, date.toString(), kind.name(), label, flag.name());
+        
     }
 
     public void markDelivered(String channels) {
@@ -87,6 +91,7 @@ public class Alert {
     public Long getId() { return id; }
     public String getCommodity() { return commodity; }
     public LocalDate getAlertDate() { return alertDate; }
+    
     public AlertKind getKind() { return kind; }
     public String getLabel() { return label; }
     public AlertFlag getFlag() { return flag; }
