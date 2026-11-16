@@ -8,7 +8,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,6 +22,7 @@ public class Alert {
     private Long id;
 
     @Column(nullable = false, length = 40)
+    
     private String commodity;
 
     @Column(name = "alert_date", nullable = false)
@@ -37,6 +37,7 @@ public class Alert {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
+    
     private AlertFlag flag;
 
     /** Spread % for spread alerts; change in total margin (percentage points) for MARGIN alerts. */
@@ -44,6 +45,7 @@ public class Alert {
     private BigDecimal spreadPct;
 
     @Column(nullable = false, length = 500)
+    
     private String message;
 
     @Column(name = "dedupe_key", nullable = false, length = 200, unique = true)
@@ -62,6 +64,7 @@ public class Alert {
                  BigDecimal spreadPct, String message, Instant createdAt) {
         this.commodity = commodity;
         this.alertDate = alertDate;
+        
         this.kind = kind;
         this.label = label;
         this.flag = flag;
@@ -72,10 +75,12 @@ public class Alert {
     }
 
     public static String dedupeKey(String commodity, LocalDate date, AlertKind kind, String label, AlertFlag flag) {
+        
         return String.join("|", commodity, date.toString(), kind.name(), label, flag.name());
     }
 
     public void markDelivered(String channels) {
+        
         this.deliveredTo = channels;
     }
 
