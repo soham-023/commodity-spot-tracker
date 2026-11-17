@@ -137,7 +137,6 @@ class AlertServiceTest {
         AlertService service = new AlertService(spreads, repo, List.of(new LogAlertChannel()), contracts, NCDEX, clock);
 
         List<Alert> first = service.evaluate("TURMERIC");
-
         assertThat(first).singleElement().satisfies(a -> {
             assertThat(a.getKind()).isEqualTo(AlertKind.MARGIN);
             assertThat(a.getFlag()).isEqualTo(AlertFlag.MARGIN_CHANGE);
@@ -148,6 +147,7 @@ class AlertServiceTest {
                     + "Additional margin long 20.00%, short 20.00% (Morning margin file).");
         });
         assertThat(service.evaluate("TURMERIC")).isEmpty();
+        
     }
 
     @Test
