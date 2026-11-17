@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -21,8 +22,10 @@ public class BackfillService {
 
     private final List<HistoricalPriceSource> sources;
     private final SnapshotWriter writer;
+    
     private final Clock clock;
     private final ReentrantLock lock = new ReentrantLock();
+    
 
     public BackfillService(List<HistoricalPriceSource> sources, SnapshotWriter writer, Clock clock) {
         this.sources = sources;
@@ -35,9 +38,11 @@ public class BackfillService {
         try {
             Instant started = clock.instant();
             List<SourceRunResult> results = new ArrayList<>();
+            
             for (HistoricalPriceSource source : sources) {
                 if (!source.isEnabled()) {
                     results.add(SourceRunResult.skipped(source.id()));
+                    
                     continue;
                 }
                 try {
@@ -45,9 +50,11 @@ public class BackfillService {
                     SnapshotWriter.Counts c = writer.upsert(rows);
                     log.info("Backfill {} {}..{}: {} rows ({} new, {} updated)", source.id(), from, to, rows.size(),
                             c.inserted(), c.updated());
+                    
                     results.add(new SourceRunResult(source.id(), SourceRunResult.Status.OK, rows.size(), c.inserted(),
                             c.updated(), null));
                 } catch (InterruptedException e) {
+                    
                     Thread.currentThread().interrupt();
                     results.add(SourceRunResult.failed(source.id(), e));
                 } catch (Exception e) {
