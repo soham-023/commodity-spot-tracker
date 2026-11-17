@@ -2,6 +2,7 @@ package io.github.soham023.spottracker.alert;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.soham023.spottracker.source.HttpFetcher;
+
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -23,6 +24,7 @@ public class TelegramAlertChannel implements AlertChannel {
 
     @Override
     public String name() {
+        
         return "telegram";
     }
 
@@ -35,6 +37,7 @@ public class TelegramAlertChannel implements AlertChannel {
     public void send(Alert alert) throws Exception {
         String body = mapper.writeValueAsString(Map.of(
                 "chat_id", props.telegramChatId(),
+            
                 "text", "🟡 " + alert.getMessage(),
                 "disable_web_page_preview", true));
         http.postJson("https://api.telegram.org/bot" + props.telegramBotToken() + "/sendMessage", body,
