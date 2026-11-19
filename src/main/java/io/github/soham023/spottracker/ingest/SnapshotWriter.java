@@ -15,6 +15,7 @@ public class SnapshotWriter {
     }
 
     private final PriceSnapshotRepository repository;
+    
 
     public SnapshotWriter(PriceSnapshotRepository repository) {
         this.repository = repository;
@@ -27,8 +28,10 @@ public class SnapshotWriter {
         for (PriceSnapshot s : snapshots) {
             var existing = repository.findBySourceAndMarketAndVarietyAndPriceTypeAndContractMonthAndPriceDate(
                     s.getSource(), s.getMarket(), s.getVariety(), s.getPriceType(), s.getContractMonth(), s.getPriceDate());
+            
             if (existing.isPresent()) {
                 existing.get().refreshFrom(s);
+                
                 updated++;
             } else {
                 repository.save(s);
