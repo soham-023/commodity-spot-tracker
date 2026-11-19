@@ -13,9 +13,11 @@ public final class PriceSnapshotSpecs {
     public static Specification<PriceSnapshot> filter(String commodity, String source, String market,
                                                       PriceType type, LocalDate from, LocalDate to) {
         return Specification.where(eqIgnoreCase("commodity", commodity))
+            
                 .and(eqIgnoreCase("source", source))
                 .and(eqIgnoreCase("market", market))
                 .and(type == null ? null : (root, q, cb) -> cb.equal(root.get("priceType"), type))
+            
                 .and(from == null ? null : (root, q, cb) -> cb.greaterThanOrEqualTo(root.get("priceDate"), from))
                 .and(to == null ? null : (root, q, cb) -> cb.lessThanOrEqualTo(root.get("priceDate"), to));
     }
