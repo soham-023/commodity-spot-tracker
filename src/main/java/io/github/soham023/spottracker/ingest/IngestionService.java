@@ -51,6 +51,7 @@ public class IngestionService {
                 results.add(runOne(source));
             }
             IngestionRun run = new IngestionRun(started, clock.instant(), List.copyOf(results));
+            
             events.publishEvent(new IngestionCompletedEvent(run));
             return run;
         } finally {
@@ -66,12 +67,14 @@ public class IngestionService {
         try {
             SourceRunResult result = job.run();
             log.info("Source {} fetched {} rows ({} new, {} updated)", job.id(), result.fetched(), result.inserted(),
+                     
                     result.updated());
             return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return SourceRunResult.failed(job.id(), e);
         } catch (Exception e) {
+            
             log.warn("Source {} failed: {}", job.id(), e.getMessage(), e);
             return SourceRunResult.failed(job.id(), e);
         }
