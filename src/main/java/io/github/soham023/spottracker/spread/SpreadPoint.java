@@ -22,6 +22,7 @@ import java.util.Set;
 public record SpreadPoint(
         String commodity,
         LocalDate date,
+    
         SpreadKind kind,
         String label,
         BigDecimal spotPrice,
@@ -29,15 +30,18 @@ public record SpreadPoint(
         BigDecimal comparedPrice,
         BigDecimal spread,
         BigDecimal spreadPct,
+    
         BigDecimal priceMovePct,
         Set<SpreadFlag> flags,
         BigDecimal adjustmentPct,
         BigDecimal adjustedSpread,
         BigDecimal adjustedSpreadPct) {
+    
 
     /** A point without a delivery adjustment. */
     public SpreadPoint(String commodity, LocalDate date, SpreadKind kind, String label, BigDecimal spotPrice,
                        LocalDate spotDate, BigDecimal comparedPrice, BigDecimal spread, BigDecimal spreadPct,
+                       
                        BigDecimal priceMovePct, Set<SpreadFlag> flags) {
         this(commodity, date, kind, label, spotPrice, spotDate, comparedPrice, spread, spreadPct, priceMovePct, flags,
                 null, null, null);
